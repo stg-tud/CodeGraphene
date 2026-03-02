@@ -9,18 +9,17 @@ from ..core import CodeGraph, Node, Edge
 class JoernParser(BaseParser):
     """Parser that reads a Joern-exported DOT file into a :class:`CodeGraph`."""
 
-    def build_graph(self, dot_file_path: str) -> CodeGraph:
+    def build_graph(self, file_path: str) -> CodeGraph:
         """Build a :class:`CodeGraph` from a Joern DOT export.
 
         Args:
-            dot_file_path: Path to the ``.dot`` file produced by Joern.
-
+            file_path: Path to the ``.dot`` file produced by Joern.
         Returns:
             A :class:`CodeGraph` containing only nodes that have both
             ``LINE_NUMBER`` and ``CODE`` attributes, along with the
             edges connecting those nodes.
         """
-        raw_nx_graph = nx.drawing.nx_pydot.read_dot(dot_file_path)
+        raw_nx_graph = nx.drawing.nx_pydot.read_dot(file_path)
         code_graph = CodeGraph()
 
         for node_id, data in raw_nx_graph.nodes(data=True):
