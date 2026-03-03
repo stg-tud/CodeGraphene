@@ -7,19 +7,29 @@ from codegraphene import (
     CodeReconstructionSerializer
 )
 
+def create_dummy_file():
+    """Creates a dummy python file to test the pipeline."""
+    code = """def calculate_discount(price, is_member):
+    discount = 0.0
+    if is_member:
+        discount = price * 0.10
+    final_price = price - discount
+    return final_price
+    """
+    with open("dummy.py", "w") as f:
+        f.write(code)
+
 def main():
-    # 1. Configure the pipeline 
-    # Use k-hop trimmer, looking 2 hops away, following AST and CFG (Control Flow) edges.
+    create_dummy_file()
+
     pipeline = GraphPipeline(
         parser=JoernParser(),
-        trimmer=KHopTrimmer(hops=2, edge_types=["AST", "CFG"]),
+        trimmer=KHopTrimmer(hops=3, edge_types=["AST", "CFG"]),
         serializer=CodeReconstructionSerializer()
     )
 
-    # 2. Run the pipeline
-    # Point this to your export.dot file. 
     try:
-        prompt_text = pipeline.run("export.dot", target_line=4)
+        prompt_text = pipeline.run("dummy.py", target_line=4)
         
         print("\n=== FINAL LLM CONTEXT ===")
         print(prompt_text)
