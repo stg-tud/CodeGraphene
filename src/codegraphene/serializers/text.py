@@ -5,45 +5,33 @@ from ..core import CodeGraph
 
 
 class CodeReconstructionSerializer(BaseSerializer):
-    """Serializes a :class:`CodeGraph` by reconstructing source code lines.
-
-    Nodes are sorted by line number and their ``code`` attributes are joined
-    to produce a linearized source representation.
-    """
-
     def serialize(self, graph: CodeGraph) -> str:
-        """Reconstruct source code from the graph's nodes.
-
-        Args:
-            graph: The :class:`CodeGraph` to serialize.
-
-        Returns:
-            A newline-separated string of code lines, ordered by line number.
         """
-        nodes = sorted(graph.get_nodes(), key=lambda n: n.line_number)
-        return "\n".join(node.code for node in nodes)
-
+        Reconstructs the source code sequentially from the nodes in the graph.
+        """
+        lines: dict[int, str] = {}
+        for node in graph.get_nodes():
+            if node.line_number > 0 and node.code and node.code != "<empty>":
+                # Joern often creates multiple nodes for a single line (e.g., the whole statement, 
+                # plus individual variables). We take the longest code string per line to capture the full statement.
+                if node.line_number not in lines or len(node.code) > len(lines[node.line_number]):
+                    lines[node.line_number] = node.code
+        
+        sorted_line_numbers = sorted(lines.keys())
+        
+        reconstructed_code =[]
+        for line_num in sorted_line_numbers:
+            reconstructed_code.append(f"Line {line_num}: {lines[line_num]}")
+            
+        return "\n".join(reconstructed_code)
 
 class TextualGraphSerializer(BaseSerializer):
-    """Serializes a :class:`CodeGraph` as a human-readable edge list.
-
-    Each edge is represented as ``source_code --[label]--> target_code``.
-    """
-
     def serialize(self, graph: CodeGraph) -> str:
-        """Produce a textual edge-list representation of the graph.
-
-        Args:
-            graph: The :class:`CodeGraph` to serialize.
-
-        Returns:
-            A newline-separated string where each line describes one edge.
         """
-        lines = []
-        node_data = dict(graph.nx_graph.nodes(data=True))
+        Outputs a simple text summary of the edges for the LLM to read.
+        """
+        output =[]
         for u, v, data in graph.nx_graph.edges(data=True):
-            src_code = node_data.get(u, {}).get("code", u)
-            tgt_code = node_data.get(v, {}).get("code", v)
-            label = data.get("label", "")
-            lines.append(f"{src_code} --[{label}]--> {tgt_code}")
-        return "\n".join(lines)
+            edge_type = data.get("label", "CONNECTS_TO")
+            output.append(f"Node {u} {edge_type} Node {v}")
+        return "\n".join(output)
