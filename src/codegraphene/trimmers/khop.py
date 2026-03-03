@@ -44,7 +44,7 @@ class KHopTrimmer(BaseTrimmer):
         for _, data in ego.nodes(data=True):
             trimmed_graph.add_node(Node(**data))
 
-        for u, v, data in ego.edges(keys=True):
+        for u, v, _, data in ego.edges(keys=True, data=True):
             trimmed_graph.add_edge(Edge(source=u, target=v, label=data.get("label", "")))
 
         return trimmed_graph
