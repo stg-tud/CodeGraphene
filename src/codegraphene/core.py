@@ -1,16 +1,37 @@
+from __future__ import annotations
 import networkx as nx
 from dataclasses import dataclass, field
-from typing import Dict, Any, List
+from typing import ClassVar, Dict, Any, List, Set
+
+
+class NodeGranularity:
+    """Defines which CPG node attributes are required, and which to use as the label."""
+    LINE:   ClassVar[NodeGranularity]
+    METHOD: ClassVar[NodeGranularity]
+    FILE:   ClassVar[NodeGranularity]
+
+    def __init__(self, required_attrs: Set[str], label_attr: str) -> None:
+        self.required_attrs = frozenset(required_attrs)
+        self.label_attr = label_attr
+
+    def is_valid(self, data: dict) -> bool:
+        return self.required_attrs.issubset(data.keys())
+
+    def extract_label(self, data: dict) -> str:
+        return data.get(self.label_attr, "UNKNOWN")
+
+
+# Built-in granularity presets
+NodeGranularity.LINE   = NodeGranularity(required_attrs={"LINE_NUMBER", "CODE"}, label_attr="label")
+NodeGranularity.METHOD = NodeGranularity(required_attrs={"NAME", "FULL_NAME"},   label_attr="NAME")
+NodeGranularity.FILE   = NodeGranularity(required_attrs={"NAME"},                label_attr="NAME")
 
 
 @dataclass
 class Node:
     id: str
     label: str
-    code: str
-    line_number: int
     properties: Dict[str, Any] = field(default_factory=dict)
-
 
 @dataclass
 class Edge:
