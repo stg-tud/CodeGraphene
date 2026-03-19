@@ -3,7 +3,8 @@
 from codegraphene import (
     GraphPipeline, 
     JoernParser, 
-    KHopTrimmer, 
+    KHopTrimmer,
+    NodeGranularity,
     CodeReconstructionSerializer
 )
 
@@ -15,6 +16,9 @@ def create_dummy_file():
         discount = price * 0.10
     final_price = price - discount
     return final_price
+
+    def alias(price, is_member):
+        return calculate_discount(price, is_member)
     """
     with open("dummy.py", "w") as f:
         f.write(code)
@@ -23,13 +27,13 @@ def main():
     create_dummy_file()
 
     pipeline = GraphPipeline(
-        parser=JoernParser(),
+        parser=JoernParser(granularity=NodeGranularity.METHOD),
         trimmer=KHopTrimmer(hops=3, edge_types=["AST", "CFG"]),
-        serializer=CodeReconstructionSerializer()
+        serializer=CodeReconstructionSerializer(granularity=NodeGranularity.METHOD)
     )
 
     try:
-        prompt_text = pipeline.run("dummy.py", target_line=4)
+        prompt_text = pipeline.run("dummy.py", target="calculate_discount")
         
         print("\n=== FINAL LLM CONTEXT ===")
         print(prompt_text)
