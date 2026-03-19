@@ -11,6 +11,8 @@ This package provides a composable pipeline to:
 
 ## Installation
 
+Joern must be installed for CodeGraphene to work properly!
+
 ```bash
 pip install codegraphene
 ```
