@@ -5,6 +5,7 @@ from .pipeline import GraphPipeline
 from .parsers.joern import JoernParser
 from .trimmers.khop import KHopTrimmer
 from .serializers.text import CodeReconstructionSerializer
+from .core import NodeGranularity
 
 __all__ = [
     "CodeGraph",
@@ -12,4 +13,5 @@ __all__ = [
     "JoernParser",
     "KHopTrimmer",
     "CodeReconstructionSerializer",
+    "NodeGranularity"
 ]
