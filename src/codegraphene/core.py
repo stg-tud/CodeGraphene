@@ -10,9 +10,17 @@ class NodeGranularity:
     METHOD: ClassVar[NodeGranularity]
     FILE:   ClassVar[NodeGranularity]
 
-    def __init__(self, required_attrs: Set[str], label_attr: str) -> None:
+    def __init__(
+        self,
+        required_attrs: Set[str],
+        label_attr: str,
+        code_attr: str,
+        line_attr: str | None = None,
+    ) -> None:
         self.required_attrs = frozenset(required_attrs)
         self.label_attr = label_attr
+        self.code_attr = code_attr
+        self.line_attr = line_attr  # None means granularity has no meaningful line ordering
 
     def is_valid(self, data: dict) -> bool:
         return self.required_attrs.issubset(data.keys())
@@ -20,11 +28,48 @@ class NodeGranularity:
     def extract_label(self, data: dict) -> str:
         return data.get(self.label_attr, "UNKNOWN")
 
+    def extract_code(self, properties: dict) -> str | None:
+        return properties.get(self.code_attr)
 
-# Built-in granularity presets
-NodeGranularity.LINE   = NodeGranularity(required_attrs={"LINE_NUMBER", "CODE"}, label_attr="label")
-NodeGranularity.METHOD = NodeGranularity(required_attrs={"NAME", "FULL_NAME"},   label_attr="NAME")
-NodeGranularity.FILE   = NodeGranularity(required_attrs={"NAME"},                label_attr="NAME")
+    def extract_line_number(self, properties: dict) -> int | None:
+        if self.line_attr is None:
+            return None
+        try:
+            return int(properties[self.line_attr])
+        except (KeyError, ValueError):
+            return None
+    
+    def find_target_nodes(self, graph: CodeGraph, target: str | int) -> list[Node]:
+        """Return nodes whose line number or label attribute matches *target*."""
+        matches = []
+        for node in graph.get_nodes():
+            if self.line_attr is not None and isinstance(target, int):
+                if self.extract_line_number(node.properties) == target:
+                    matches.append(node)
+            else:
+                if node.label == str(target):
+                    matches.append(node)
+        return matches
+
+
+NodeGranularity.LINE = NodeGranularity(
+    required_attrs={"LINE_NUMBER", "CODE"},
+    label_attr="label",
+    code_attr="CODE",
+    line_attr="LINE_NUMBER",
+)
+NodeGranularity.METHOD = NodeGranularity(
+    required_attrs={"NAME", "FULL_NAME"},
+    label_attr="NAME",
+    code_attr="FULL_NAME",
+    line_attr="LINE_NUMBER",
+)
+NodeGranularity.FILE = NodeGranularity(
+    required_attrs={"NAME"},
+    label_attr="NAME",
+    code_attr="NAME",
+    line_attr=None,
+)
 
 
 @dataclass
