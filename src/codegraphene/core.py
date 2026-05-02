@@ -62,7 +62,7 @@ NodeGranularity.METHOD = NodeGranularity(
     required_attrs={"NAME", "FULL_NAME"},
     label_attr="NAME",
     code_attr="FULL_NAME",
-    line_attr="LINE_NUMBER",
+    line_attr=None,
 )
 NodeGranularity.FILE = NodeGranularity(
     required_attrs={"NAME"},
