@@ -1,22 +1,9 @@
 # Snippet from RepoCoder function_level_completion_4k_context_codex dataset.
 # https://github.com/microsoft/CodeT/blob/main/RepoCoder/datasets/datasets.zip
 
-if self._count % self.gas == 0:
-            self.optimizer_step()
 
-            # param callback (e.g., parameter clipping)
-            if self.is_implemented("param_callback"):
-                self.param_callback()
 
-            if self._strategy != "default" and self._count % (self.gas * 20) == 0:
-                self.synchronize_params(self.trainable_parameters())
-
-            # zero-out grad
-            self.zero_grad()
-
-        return loss_dict
-
-    def step_normal(self, global_step=None):
+def step_normal(self, global_step=None):
         if self.check_ready():
             # loop start
             if self._inner_loop_start:
@@ -62,7 +49,7 @@ if self._count % self.gas == 0:
 
             self.ready = [False for _ in range(len(self._children))]
 
-    def step_after_roll_back(self):
+def step_after_roll_back(self):
         if self.check_ready() and self._training:
             if self._roll_back:
                 # recover from cached states
@@ -83,7 +70,7 @@ if self._count % self.gas == 0:
 
             self.ready = [False for _ in range(len(self._children))]
 
-    def step(self, global_step=None):
+def step(self, global_step=None):
         """
         ``step`` method abstracts a one-step gradient descent update with four sub-steps:
         1) data loading, 2) cost calculation, 3) gradient calculation, and 4) parameter update.
@@ -101,7 +88,7 @@ if self._count % self.gas == 0:
         ):
             self.step_after_roll_back()
 
-    def get_batch(self):
+def get_batch(self):
         """
         Load training batch from the user-provided data loader
 
@@ -114,7 +101,7 @@ if self._count % self.gas == 0:
 
         return batch[0] if len(batch) == 1 else batch
 
-    def get_batch_single_loader(self, idx):
+def get_batch_single_loader(self, idx):
         """
         Load training batch from one of the user-provided data loader(s)
 
@@ -144,7 +131,7 @@ if self._count % self.gas == 0:
 
         return batch
 
-    def get_loss(self, batch):
+def get_loss(self, batch):
         """
         Calculate loss and log metrics for the current batch based on the user-defined loss
         function.
@@ -169,7 +156,7 @@ if self._count % self.gas == 0:
 
         return loss, loss_dict
 
-    def backward(
+def backward(
         self,
         loss,
         params,
@@ -231,7 +218,7 @@ if self._count % self.gas == 0:
                 if not do_sync:
                     self.set_grads(params, grads)
 
-    def set_grads(self, params, grads):
+def set_grads(self, params, grads):
         """
         Set gradients for trainable parameters. ``params.grad = grads``
 
@@ -247,7 +234,7 @@ if self._count % self.gas == 0:
                 else:
                     param.grad = grad
 
-    def synchronize_params(self, params):
+def synchronize_params(self, params):
         """
         synchronize parameters across distributed data-parallel processes
         """
@@ -255,14 +242,14 @@ if self._count % self.gas == 0:
             for param in params:
                 dist.broadcast(param.data, 0)
 
-    @abc.abstractmethod
-    def optimizer_step(self, *args, **kwargs):
+@abc.abstractmethod
+def optimizer_step(self, *args, **kwargs):
         """
         Update weights as in PyTorch's native ``optim.step()``
         """
         raise NotImplementedError
 
-    def zero_grad(self):
+def zero_grad(self):
         """
         Set gradients for trainable parameters for the current problem to 0.
         Similar with PyTorch's ``optim.zero_grad()`` or ``module.zero_grad()``.
@@ -271,7 +258,7 @@ if self._count % self.gas == 0:
             if hasattr(param, "grad"):
                 del param.grad
 
-    def clip_grad(self):
+def clip_grad(self):
         """
         Perform gradient clipping based on the norm provided by Config
         """
@@ -282,7 +269,7 @@ if self._count % self.gas == 0:
         else:
             self.module.clip_grad_norm_(max_norm=self.gradient_clipping)
 
-    def state_dict(self):
+def state_dict(self):
         """
         Return all states involved in ``Problem`` with a Python dictionary. By default, it
         includes ``self.module.state_dict`` and ``self.optimizer.state_dict``. Depending on users'
@@ -299,7 +286,7 @@ if self._count % self.gas == 0:
 
         return state_dict
 
-    def load_state_dict(self, state_dict):
+def load_state_dict(self, state_dict):
         """Load the state for the ``Problem``
 
         Args:
@@ -312,7 +299,7 @@ if self._count % self.gas == 0:
         if self._is_default_fp16() and "scaler" in state_dict:
             self.scaler.load_state_dict(state_dict["scaler"])
 
-    def configure_distributed_training(self, dictionary):
+def configure_distributed_training(self, dictionary):
         """
         Set the configuration for distributed training.
 
@@ -325,7 +312,7 @@ if self._count % self.gas == 0:
         self._rank = dictionary["rank"]
         self._local_rank = dictionary["local_rank"]
 
-    def configure_roll_back(self, roll_back):
+def configure_roll_back(self, roll_back):
         """
         Set the roll-back (warm- start) option from Engine
 
@@ -335,13 +322,13 @@ if self._count % self.gas == 0:
         if len(self._parents) > 0:
             self._roll_back = roll_back
 
-    def configure_device(self, device):
+def configure_device(self, device):
         """
         Set the device for the current problem.
         """
         self.device = device
 
-    def get_opt_param_group_for_param(self, param):
+def get_opt_param_group_for_param(self, param):
         """
         Get optimizer param_group for specific parameter
 
@@ -356,7 +343,7 @@ if self._count % self.gas == 0:
                 if param is p:
                     return group
 
-    def get_opt_state_for_param(self, param):
+def get_opt_state_for_param(self, param):
         """
         Get optimizer state for specific parameter
 
@@ -368,33 +355,33 @@ if self._count % self.gas == 0:
         state = self.optimizer.state
         return state[param]
 
-    @abc.abstractmethod
-    def cache_states(self):
+@abc.abstractmethod
+def cache_states(self):
         """
         Cache params, buffers, optimizer states when ``config.roll_back`` is set to ``True`` in
         ``step``.
         """
         raise NotImplementedError
 
-    @abc.abstractmethod
-    def recover_states(self):
+@abc.abstractmethod
+def recover_states(self):
         """
         Recover params, buffers, optimizer states when ``config.roll_back`` is set to ``True`` in
         ``step``.
         """
         raise NotImplementedError
 
-    def epoch_callback_exec(self):
+def epoch_callback_exec(self):
         if self.is_implemented("epoch_callback"):
             self.epoch_callback()
 
-    def gradient_accumulation_boundary(self):
+def gradient_accumulation_boundary(self):
         """
         Check whether the current step is on the gradient accumulation boundary
         """
         return bool(self._count % self.gas == 0)
 
-    def _is_default_fp16(self):
+def _is_default_fp16(self):
         """
         Check whether to use PyTorch native fp16 (mixed-precision) feature
         """
@@ -402,7 +389,7 @@ if self._count % self.gas == 0:
             return False
         return True
 
-    def is_implemented(self, fn_name):
+def is_implemented(self, fn_name):
         """
         Check if ``fn_name`` method is implemented in the class
 
@@ -410,7 +397,7 @@ if self._count % self.gas == 0:
         """
         return callable(getattr(self, fn_name, None))
 
-    def check_ready(self):
+def check_ready(self):
         """
         Check if unrolling processes of lower level problems in the hierarchical dependency
         graph are all ready/done. ``step`` function is only excuted when this method returns
@@ -420,7 +407,7 @@ if self._count % self.gas == 0:
         """
         return all(self.ready)
 
-    def log(self, stats, global_step):
+def log(self, stats, global_step):
         """
         Log (training) stats to the ``self.logger``
 
@@ -429,3 +416,4 @@ if self._count % self.gas == 0:
         :param step: global/local step associated with the ``stats``.
         :type step: int
         """
+        pass
