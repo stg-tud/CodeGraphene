@@ -22,14 +22,36 @@ class CodeReconstructionSerializer(BaseSerializer):
         """Serialize nodes ordered by line number, deduplicating by longest code per line."""
         lines: dict[int, str] = {}
 
+        ignore_substrings =[
+            "<empty>", 
+            "<module>", 
+            "__builtins__", 
+            "ErrorStatement",
+            "ParseException",
+            "<MISSINDENT>",
+            "<INDENT>",
+            "<DEDENT>",
+            "if ...", 
+            "while ...", 
+            "for ...",
+            "try ...",
+            "ANY"
+        ]
+
+
         for node in graph.get_nodes():
             line_number = self.granularity.extract_line_number(node.properties)
             code = self.granularity.extract_code(node.properties)
 
             if line_number is None or line_number <= 0:
                 continue
-            if not code or code == "<empty>":
+            if not code or code.strip() == "...":
                 continue
+
+            # Filter out Joern's internal synthetic nodes and parser errors
+            if any(noise in code for noise in ignore_substrings):
+                continue
+        
             if line_number not in lines or len(code) > len(lines[line_number]):
                 lines[line_number] = code
 
