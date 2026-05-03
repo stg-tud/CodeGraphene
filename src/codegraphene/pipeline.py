@@ -46,7 +46,7 @@ class GraphPipeline:
         if not target_nodes:
             raise ValueError(
                 f"No nodes found matching target {target!r} "
-                f"under granularity {granularity!r}"
+                f"under granularity {granularity.granularity_name!r}"
             )
 
         center_node_id = target_nodes[0].id

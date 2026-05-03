@@ -15,12 +15,14 @@ class NodeGranularity:
         required_attrs: Set[str],
         label_attr: str,
         code_attr: str,
+        granularity_name: str,
         line_attr: str | None = None,
     ) -> None:
         self.required_attrs = frozenset(required_attrs)
         self.label_attr = label_attr
         self.code_attr = code_attr
         self.line_attr = line_attr  # None means granularity has no meaningful line ordering
+        self.granularity_name = granularity_name
 
     def is_valid(self, data: dict) -> bool:
         return self.required_attrs.issubset(data.keys())
@@ -57,18 +59,21 @@ NodeGranularity.LINE = NodeGranularity(
     label_attr="label",
     code_attr="CODE",
     line_attr="LINE_NUMBER",
+    granularity_name="LINE",
 )
 NodeGranularity.METHOD = NodeGranularity(
     required_attrs={"NAME", "FULL_NAME"},
     label_attr="NAME",
     code_attr="FULL_NAME",
     line_attr=None,
+    granularity_name="METHOD",
 )
 NodeGranularity.FILE = NodeGranularity(
     required_attrs={"NAME"},
     label_attr="NAME",
     code_attr="NAME",
     line_attr=None,
+    granularity_name="FILE",
 )
 
 
