@@ -56,19 +56,24 @@ The best way to understand CodeGraphene is to see it in action. We have provided
 CodeGraphene relies on **Joern** for CPG extraction. Because Joern is highly optimized for Unix environments, we strongly recommend running CodeGraphene on **Linux or Windows Subsystem for Linux (WSL 2)**.
 
 ### 1. Install Joern
-Ensure you have Java (JDK 11 or 17) and `unzip` installed, then run the official Joern installer:
-```bash
-curl -L "https://github.com/joernio/joern/releases/latest/download/joern-install.sh" | sh
-```
+Ensure you have Java (JDK 21) and `unzip` installed, then run the official Joern installer.
 Make sure the directory containing the `joern` executable is accessible in your system `PATH` (usually `~/bin`).
+
+```bash
+conda install unzip
+conda install conda-forge::openjdk==21.0.0
+mkdir joern && cd joern
+curl -L "https://github.com/joernio/joern/releases/latest/download/joern-install.sh" -o joern-install.sh
+chmod u+x joern-install.sh
+./joern-install.sh --interactive
+export PATH="/path/to/joern/joern-cli/:$PATH"
+```
 
 ### 2. Install CodeGraphene
 Clone the repository and install it in editable mode:
 ```bash
 git clone https://github.com/stg-tud/CodeGraphene.git
 cd CodeGraphene
-python3 -m venv .venv
-source .venv/bin/activate
 pip install -e .
 ```
 
