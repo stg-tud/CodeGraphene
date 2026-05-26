@@ -1,0 +1,2 @@
+networkx>=3.0
+pydot<2.0.0
