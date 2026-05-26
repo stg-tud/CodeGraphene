@@ -1,6 +1,7 @@
 name: Python Checks
 
 on:
+  workflow_dispatch:
   pull_request:
   push:
 
