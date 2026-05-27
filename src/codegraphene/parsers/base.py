@@ -1,11 +1,11 @@
 """Base parser interface for CodeGraphene."""
 
-from abc import ABC, abstractmethod
+from abc import abstractmethod
 
-from ..core import CodeGraph
+from ..core import BaseComponent, CodeGraph
 
 
-class BaseParser(ABC):
+class BaseParser(BaseComponent):
     """Abstract base class for all graph parsers."""
 
     @abstractmethod
@@ -18,3 +18,22 @@ class BaseParser(ABC):
         Returns:
             A populated :class:`CodeGraph` instance.
         """
+
+    def run(self, current_graph=None, **context):
+        """Execute the parser and return a graph."""
+        file_path = context.get("file_path")
+        if not file_path:
+            raise ValueError("BaseParser.run() requires 'file_path'.")
+        return self.build_graph(file_path)
+
+    def describe(self) -> dict:
+        info = super().describe()
+        info.update(
+            {
+                "input_type": "file_path",
+                "output_type": "CodeGraph",
+                "requires_context": ["file_path"],
+                "capabilities": ["read_file"],
+            }
+        )
+        return info

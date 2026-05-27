@@ -1,11 +1,11 @@
 """Base trimmer interface for CodeGraphene."""
 
-from abc import ABC, abstractmethod
+from abc import abstractmethod
 
-from ..core import CodeGraph
+from ..core import BaseComponent, CodeGraph
 
 
-class BaseTrimmer(ABC):
+class BaseTrimmer(BaseComponent):
     """Abstract base class for all graph trimmers."""
 
     @abstractmethod
@@ -19,3 +19,24 @@ class BaseTrimmer(ABC):
         Returns:
             A new :class:`CodeGraph` representing the trimmed subgraph.
         """
+
+    def run(self, current_graph=None, **context):
+        """Execute the trim step using the shared pipeline context."""
+        if current_graph is None:
+            raise ValueError("BaseTrimmer.run() requires a graph input.")
+        target_node_id = context.get("target_node_id")
+        if target_node_id is None:
+            raise ValueError("BaseTrimmer.run() requires 'target_node_id'.")
+        return self.trim(current_graph, target_node_id)
+
+    def describe(self) -> dict:
+        info = super().describe()
+        info.update(
+            {
+                "input_type": "CodeGraph",
+                "output_type": "CodeGraph",
+                "requires_context": ["target_node_id"],
+                "capabilities": ["graph_read"],
+            }
+        )
+        return info

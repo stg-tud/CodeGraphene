@@ -24,7 +24,7 @@ class KHopTrimmer(BaseTrimmer):
 
         nx_graph = graph.nx_graph
         if target_node_id not in nx_graph:
-            raise ValueError(f"None {target_node_id} not found in graph.")
+            raise ValueError(f"Target node {target_node_id} not found in graph.")
         
         if self.edge_types is not None:
             def is_valid_edge(u, v, k):
@@ -48,3 +48,14 @@ class KHopTrimmer(BaseTrimmer):
             trimmed_graph.add_edge(Edge(source=u, target=v, label=data.get("label", "")))
 
         return trimmed_graph
+
+    def describe(self) -> dict:
+        info = super().describe()
+        info.update(
+            {
+                "name": "KHopTrimmer",
+                "capabilities": ["graph_read"],
+                "hops": self.hops,
+            }
+        )
+        return info
