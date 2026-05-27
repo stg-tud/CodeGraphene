@@ -100,6 +100,10 @@ class CodeGraph:
     def add_edge(self, edge: Edge):
         self.nx_graph.add_edge(edge.source, edge.target, label=edge.label)
 
+    def get_edges(self) -> List[Edge]:
+        return [Edge(source=u, target=v, label=data.get("label", ""))
+                for u, v, data in self.nx_graph.edges(data=True)]
+
     def get_nodes(self) -> List[Node]:
         return [Node(**data) for _, data in self.nx_graph.nodes(data=True)]
 

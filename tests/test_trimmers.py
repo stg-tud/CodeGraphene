@@ -55,8 +55,13 @@ class TestKHopTrimmer:
         assert result.nx_graph.number_of_nodes() == graph.nx_graph.number_of_nodes()
         assert result.nx_graph.number_of_edges() == graph.nx_graph.number_of_edges()
         # We can also check that the nodes and edges are the same (ignoring object identity)
-        assert set(result.nx_graph.nodes(data=True)) == set(graph.nx_graph.nodes(data=True))
-        assert set(result.nx_graph.edges(data=True)) == set(graph.nx_graph.edges(data=True))
+        # dict cannot be cast into set, so we need to convert the node and edge data to tuples for comparison
+        original_nodes = set((node.id, node.label, frozenset(node.properties.items())) for node in graph.get_nodes())
+        result_nodes = set((node.id, node.label, frozenset(node.properties.items())) for node in result.get_nodes())
+        assert original_nodes == result_nodes
+        original_edges = set((edge.source, edge.target, edge.label) for edge in graph.get_edges())
+        result_edges = set((edge.source, edge.target, edge.label) for edge in result.get_edges())
+        assert original_edges == result_edges
         # The result should not be the same object as the input graph
         assert result is not graph
 
