@@ -3,7 +3,7 @@
 # import pytest
 
 from codegraphene.core import CodeGraph, Node, Edge, NodeGranularity
-
+import networkx as nx
 
 # Basic tests for core data structures and abstract parser interface
 class TestCoreDataStructures:
@@ -23,7 +23,7 @@ class TestCoreDataStructures:
     # Test NodeGranularity methods for all granularity types
     def test_node_granularity_methods(self):
         line_node = Node(
-            id="1", label="ASSIGN", properties={"LINE_NUMBER": "10", "CODE": "x = 1"}
+            id="1", label="ASSIGN", properties={"LINE_NUMBER": "10", "CODE": "x = 1", "label": "ASSIGN"}
         )
         method_node = Node(
             id="2",
@@ -59,19 +59,22 @@ class TestCoreDataStructures:
     # Test CodeGraph node and edge addition
     def test_codegraph_add_node_and_edge(self):
         graph = CodeGraph()
-        node = Node(id="1", label="TEST_NODE", properties={"key": "value"})
+        # Add test to see if nx_graph generated and correct class
+        assert isinstance(graph.nx_graph, nx.MultiDiGraph)
+        node1 = Node(id="1", label="TEST_NODE", properties={"key": "value"})
+        node2 = Node(id="2", label="TEST_NODE", properties={"key": "value"})
         edge = Edge(source="1", target="2", label="TEST_EDGE")
-        graph.add_node(node)
+        graph.add_node(node1)
+        graph.add_node(node2)
         graph.add_edge(edge)
-        assert graph.nx_graph.number_of_nodes() == 1
+        # Verify if get_nodes returns the correct Node objects
+        nodes = graph.get_nodes()
+        assert len(nodes) == 2
+        assert any(node.id == "1" and node.label == "TEST_NODE" for node in nodes)
+        assert any(node.id == "2" and node.label == "TEST_NODE" for node in nodes)
+        # Verify that the nodes and edges are added to the NetworkX graph
         assert graph.nx_graph.number_of_edges() == 1
-        # Verify that the node data is stored correctly
-        stored_node_data = graph.nx_graph.nodes["1"]
-        assert stored_node_data["id"] == "1"
-        assert stored_node_data["label"] == "TEST_NODE"
-        assert stored_node_data["properties"]["key"] == "value"
-        # Verify that the edge data is stored correctly        stored_edge_data = graph.nx_graph.get_edge_data("1", "2")
-        assert graph.nx_graph.has_edge("1", "2")
+        # Verify edge data is correct
         stored_edge_data = graph.nx_graph.get_edge_data("1", "2")
         assert stored_edge_data is not None
         # Since it's a MultiDiGraph, get_edge_data returns a dict of dicts keyed by edge keys

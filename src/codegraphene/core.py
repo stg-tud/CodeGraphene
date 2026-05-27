@@ -40,7 +40,7 @@ class NodeGranularity:
             return int(properties[self.line_attr])
         except (KeyError, ValueError):
             return None
-    
+
     def find_target_nodes(self, graph: CodeGraph, target: str | int) -> list[Node]:
         """Return nodes whose line number or label attribute matches *target*."""
         matches = []
@@ -102,9 +102,9 @@ class CodeGraph:
 
     def get_nodes(self) -> List[Node]:
         return [Node(**data) for _, data in self.nx_graph.nodes(data=True)]
-        
+
     def get_nodes_by_line(self, line_number: int) -> List[Node]:
-        return[Node(**data) for _, data in self.nx_graph.nodes(data=True) 
+        return[Node(**data) for _, data in self.nx_graph.nodes(data=True)
                 if data.get('line_number') == line_number]
 
     def summary(self) -> str:
