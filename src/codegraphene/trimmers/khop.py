@@ -9,7 +9,7 @@ from codegraphene.core import CodeGraph, Edge, Node
 
 
 class KHopTrimmer(BaseTrimmer):
-    """Trims a :class:`CodeGraph` to the k-hop neighbourhood of a target node.
+    """Trims a :class:`CodeGraph` to the k-hop neighborhood of a target node.
 
     Args:
         hops: Number of hops to include around the target node.
