@@ -104,8 +104,8 @@ class CodeGraph:
         return [Node(**data) for _, data in self.nx_graph.nodes(data=True)]
 
     def get_nodes_by_line(self, line_number: int) -> List[Node]:
-        return[Node(**data) for _, data in self.nx_graph.nodes(data=True)
-                if data.get('line_number') == line_number]
+        return [node for node in self.get_nodes()
+                if NodeGranularity.LINE.extract_line_number(node.properties) == line_number]
 
     def summary(self) -> str:
         return (

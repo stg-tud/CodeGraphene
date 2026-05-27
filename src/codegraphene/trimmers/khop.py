@@ -25,19 +25,24 @@ class KHopTrimmer(BaseTrimmer):
         nx_graph = graph.nx_graph
         if target_node_id not in nx_graph:
             raise ValueError(f"None {target_node_id} not found in graph.")
-        
+
         if self.edge_types is not None:
+
             def is_valid_edge(u, v, k):
                 return nx_graph[u][v][k].get("label") in self.edge_types
-            
+
             search_view = nx.subgraph_view(nx_graph, filter_edge=is_valid_edge)
         else:
             search_view = nx_graph
-        
+
         if target_node_id not in search_view:
-            return CodeGraph()  # Return empty graph if target node is not in the filtered view
-        
-        ego = nx.ego_graph(search_view, target_node_id, radius=self.hops, undirected=True)
+            return (
+                CodeGraph()
+            )  # Return empty graph if target node is not in the filtered view
+
+        ego = nx.ego_graph(
+            search_view, target_node_id, radius=self.hops, undirected=True
+        )
 
         trimmed_graph = CodeGraph()
 
@@ -45,6 +50,8 @@ class KHopTrimmer(BaseTrimmer):
             trimmed_graph.add_node(Node(**data))
 
         for u, v, _, data in ego.edges(keys=True, data=True):
-            trimmed_graph.add_edge(Edge(source=u, target=v, label=data.get("label", "")))
+            trimmed_graph.add_edge(
+                Edge(source=u, target=v, label=data.get("label", ""))
+            )
 
         return trimmed_graph
