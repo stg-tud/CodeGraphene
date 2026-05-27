@@ -2,7 +2,7 @@
 
 import pytest
 
-from codegraphene.core import CodeGraph, Node, Edge
+from codegraphene.core import CodeGraph
 from codegraphene.parsers.base import BaseParser
 from codegraphene.parsers.joern import JoernParser
 
@@ -10,8 +10,11 @@ from codegraphene.parsers.joern import JoernParser
 class ConcreteParser(BaseParser):
     """Minimal concrete parser for testing the abstract interface."""
 
+    # Add simple test for building a graph from a file path (returns empty graph for now)
     def build_graph(self, file_path: str) -> CodeGraph:
-        return CodeGraph()
+        graph = CodeGraph()
+        # In a real implementation, we would parse the file and populate the graph
+        return graph
 
 
 class TestBaseParser:

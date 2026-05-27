@@ -64,7 +64,7 @@ class JoernParser(BaseParser):
 
     def _load_graph_from_dot(self, dot_file_path: str) -> CodeGraph:
         """Parse a DOT file into a CodeGraph using the configured granularity."""
-        print(f"[JoernParser] Ingesting DOT file into NetworkX...")
+        print("[JoernParser] Ingesting DOT file into NetworkX...")
         raw_nx_graph = nx.drawing.nx_pydot.read_dot(dot_file_path)
 
         code_graph = CodeGraph()
