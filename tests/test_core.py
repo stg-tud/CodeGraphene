@@ -1,6 +1,6 @@
 """Tests for the core data structures and abstract parser interface."""
 
-import pytest
+# import pytest
 
 from codegraphene.core import CodeGraph, Node, Edge, NodeGranularity
 
