@@ -22,3 +22,6 @@ exclude = [
     "examples/sample_code.py",
     "examples/*.ipynb",
 ]
+
+[project.optional-dependencies]
+cache = ["datasets>=2.0"]

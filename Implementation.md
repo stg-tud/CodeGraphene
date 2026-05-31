@@ -122,6 +122,8 @@ Alternative behaviors considered (and why we didn't pick them by default)
 - `src/codegraphene/pipeline.py` — `GraphPipeline`, dry-run, sequencing, short-circuit
 - `src/codegraphene/parsers/base.py` — `BaseParser` adapters
 - `src/codegraphene/parsers/joern.py` — Joern parser changes (source_code, language, export_format, timeouts)
+ - `src/codegraphene/parsers/manager.py` — `parse_many()` utility to run parsers in parallel or sequentially.
+ - `src/codegraphene/cache.py` — caching utilities with optional HuggingFace Datasets integration (`save_graph`, `load_graph`, `save_graph_to_hf`).
 - `src/codegraphene/trimmers/khop.py` — K-hop trimmer adapted to `BaseTrimmer`
 - `src/codegraphene/serializers/text.py` — `CodeReconstructionSerializer` formatting and filters
 - `tests/` — updated unit tests and guarded integration tests
@@ -158,6 +160,13 @@ The implementation is functional, but there are several outstanding problems and
 - Tests to add & CI policy: add the recommended unit short-circuit test and the guarded integration raw-export test. Decide whether integration tests should run in a specialized CI runner.
 - Demo and teaching material: `ReadMeStudentKit.md` exists, but we should add a small runnable demo script or notebook to show `dry_run()`, in-memory parsing, and raw-export behavior.
 - Backwards compatibility coverage: verify any external scripts that relied on old hooks (e.g., `_generate_dot_file`) still work; consider adding small compatibility tests.
+
+## Recent additions (Issue #11 & #12 work in-progress)
+
+- Added `parse_many()` in `src/codegraphene/parsers/manager.py` to enable parallel parsing via `concurrent.futures.ProcessPoolExecutor`. The manager instantiates parser classes per-worker using an import path string and supports a sequential mode (`parallel_workers=1`) for easy testing.
+- Added `src/codegraphene/cache.py` with `save_graph`/`load_graph` (gzipped node-link JSON and `gpickle` support) and a helper `save_graph_to_hf` which persists a gzipped node-link payload to a local HF `Dataset` directory. The HF integration is optional and guarded by the `datasets` package.
+
+These are implemented on the current branch; unit tests were added in `tests/test_parsers_parallel.py` and `tests/test_cache.py`.
 - Timeout tuning: the chosen default parse/export timeouts need validation across environments; CI may require different settings than local dev machines.
 - Artifact size and memory: raw exports (JSON) for large projects may be very large in-memory; a file-path return option may be preferred for large codebases.
 - Security considerations: if we run Joern or other tools on untrusted code in CI, ensure sandboxing or limit inputs; validate subprocess call handling to avoid command injection.
