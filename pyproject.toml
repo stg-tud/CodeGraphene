@@ -16,3 +16,9 @@ dependencies = [
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.ruff]
+exclude = [
+    "examples/sample_code.py",
+    "examples/*.ipynb",
+]

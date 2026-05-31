@@ -119,6 +119,13 @@ class Node:
 
     def __post_init__(self) -> None:
         # Keep a single source of truth for node attributes.
+        if self.code is None and "CODE" in self.properties:
+            self.code = self.properties["CODE"]
+        if self.line_number is None and "LINE_NUMBER" in self.properties:
+            try:
+                self.line_number = int(self.properties["LINE_NUMBER"])
+            except (TypeError, ValueError):
+                self.line_number = None
         if self.code is not None:
             self.properties.setdefault("CODE", self.code)
         if self.line_number is not None:
@@ -151,6 +158,13 @@ class CodeGraph:
         self.nx_graph = nx.MultiDiGraph()
 
     def add_node(self, node: Node):
+        if node.line_number is None and "LINE_NUMBER" in node.properties:
+            try:
+                node.line_number = int(node.properties["LINE_NUMBER"])
+            except (TypeError, ValueError):
+                node.line_number = None
+        if node.code is None and "CODE" in node.properties:
+            node.code = node.properties["CODE"]
         node_data = {
             "id": node.id,
             "label": node.label,
@@ -167,10 +181,17 @@ class CodeGraph:
         return [Node(**data) for _, data in self.nx_graph.nodes(data=True)]
         
     def get_nodes_by_line(self, line_number: int) -> List[Node]:
+        matched_nodes: List[Node] = []
+        for _, data in self.nx_graph.nodes(data=True):
+            node = Node(**data)
+            if node.line_number == line_number:
+                matched_nodes.append(node)
+        return matched_nodes
+
+    def get_edges(self) -> List[Edge]:
         return [
-            Node(**data)
-            for _, data in self.nx_graph.nodes(data=True)
-            if data.get("line_number") == line_number
+            Edge(source=source, target=target, label=data.get("label", ""))
+            for source, target, data in self.nx_graph.edges(data=True)
         ]
 
     def summary(self) -> str:
