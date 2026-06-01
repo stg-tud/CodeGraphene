@@ -53,7 +53,7 @@ class NodeGranularity:
         self.required_attrs = frozenset(required_attrs)
         self.label_attr = label_attr
         self.code_attr = code_attr
-        self.line_attr = line_attr  # None means granularity has no meaningful line ordering
+        self.line_attr = line_attr
         self.granularity_name = granularity_name
 
     def is_valid(self, data: dict) -> bool:
@@ -72,7 +72,7 @@ class NodeGranularity:
             return int(properties[self.line_attr])
         except (KeyError, ValueError):
             return None
-    
+
     def find_target_nodes(self, graph: CodeGraph, target: str | int) -> list[Node]:
         """Return nodes whose line number or label attribute matches *target*."""
         matches = []
@@ -118,7 +118,6 @@ class Node:
     line_number: int | None = None
 
     def __post_init__(self) -> None:
-        # Keep a single source of truth for node attributes.
         if self.code is None and "CODE" in self.properties:
             self.code = self.properties["CODE"]
         if self.line_number is None and "LINE_NUMBER" in self.properties:
@@ -146,11 +145,32 @@ class Node:
             return self.line_number
         raise KeyError(key)
 
+
 @dataclass
 class Edge:
     source: str
     target: str
     label: str
+
+
+@dataclass
+class PipelineResult:
+    """Wrapper for all pipeline.run() outputs.
+
+    Ensures callers always receive the same type regardless of
+    whether the pipeline completed fully or short-circuited.
+    """
+
+    output: Any
+    kind: str
+    """One of: 'codegraph', 'serialized_code', 'joern_export'."""
+    output_type: str
+    """Python type name of output, e.g. 'CodeGraph', 'str', 'dict'."""
+    format: str
+    """One of: 'graph', 'text', 'json', 'xml', 'dot'."""
+    steps_executed: int
+    steps: List[str] = field(default_factory=list)
+    metadata: dict = field(default_factory=dict)
 
 
 class CodeGraph:
@@ -179,7 +199,7 @@ class CodeGraph:
 
     def get_nodes(self) -> List[Node]:
         return [Node(**data) for _, data in self.nx_graph.nodes(data=True)]
-        
+
     def get_nodes_by_line(self, line_number: int) -> List[Node]:
         matched_nodes: List[Node] = []
         for _, data in self.nx_graph.nodes(data=True):
