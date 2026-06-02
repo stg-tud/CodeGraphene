@@ -18,7 +18,11 @@ class BaseComponent(ABC):
 
     @abstractmethod
     def run(self, current_graph=None, **context):
-        """Execute the component with the given graph and context."""
+        """Execute the component with the given graph and context.
+
+        Issue #10 asks for a common module API so the pipeline can call every
+        parser, trimmer, and serializer through the same entry point.
+        """
 
     def describe(self) -> dict[str, Any]:
         """Return metadata used by dry-run planning and logging."""

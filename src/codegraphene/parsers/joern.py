@@ -52,6 +52,8 @@ class JoernParser(BaseParser):
                 language=language,
                 temp_dir=temp_dir,
             )
+            # Issue #13 requires this parser to support raw exports as an
+            # explicit opt-in path instead of always forcing a CodeGraph.
             export_artifact = self._generate_dot_file(resolved_file_path, temp_dir)
             if self.export_format == "dot":
                 return self._load_graph_from_dot(export_artifact)
@@ -135,6 +137,8 @@ class JoernParser(BaseParser):
         self._run_joern_export(cpg_out, export_out)
 
         if self.export_format != "dot":
+            # Keep the raw export path visible so notebooks and downstream tools
+            # can inspect Joern's native artifact without rebuilding a graph.
             raw_artifact = self._load_raw_export_artifact(export_out)
             if raw_artifact is not None:
                 return raw_artifact

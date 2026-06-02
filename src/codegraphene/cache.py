@@ -34,6 +34,8 @@ def save_graph(graph: CodeGraph, dest: str, format: str = "auto", overwrite: boo
     compressed using gzip.
     Returns the path written.
     """
+    # Issue #12 asks for a lightweight write/read module first, so local file
+    # formats stay simple and deterministic before any hub-specific behavior.
     if os.path.exists(dest) and not overwrite:
         raise FileExistsError(dest)
 
@@ -118,7 +120,8 @@ def save_graph_to_hf(graph: CodeGraph, dataset_id: str, field_name: str = "graph
         raise RuntimeError("datasets library is not available. Install with extras 'codegraphene[cache]'.")
 
 
-    # default to gzipped node-link JSON
+    # Issue #12 keeps this as a minimal HF Datasets bridge for now; it stores
+    # a single compressed payload locally rather than pushing to the Hub.
     payload = json.dumps({"meta": {"created": datetime.utcnow().isoformat()}, "graph": nx.node_link_data(graph.nx_graph)}).encode("utf-8")
     gz = gzip.compress(payload)
     ds = Dataset.from_dict({field_name: [gz]})
