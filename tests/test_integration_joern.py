@@ -52,5 +52,10 @@ def test_joern_parse_and_pipeline_end_to_end():
     # Full pipeline invariant: full run returns non-empty string for resolved target.
     result = pipeline.run(file_path=sample, target=target_line)
 
-    assert isinstance(result, str)
-    assert result.strip()
+    # `GraphPipeline.run()` may return a PipelineResult wrapper; accept either.
+    if hasattr(result, "output"):
+        assert isinstance(result.output, str)
+        assert result.output.strip()
+    else:
+        assert isinstance(result, str)
+        assert result.strip()

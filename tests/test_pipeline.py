@@ -68,7 +68,11 @@ def test_pipeline_runs_components_in_order():
 
     output = pipeline.run(file_path="sample.py", target=1)
 
-    assert output == "serialized"
+    # `GraphPipeline.run()` may return a PipelineResult wrapper; accept either.
+    if hasattr(output, "output"):
+        assert output.output == "serialized"
+    else:
+        assert output == "serialized"
     assert events == [
         "parser:sample.py",
         "trim-1:1",
@@ -133,5 +137,8 @@ def test_pipeline_forwards_source_code_context():
 
     output = pipeline.run(source_code="x = 1", language="python", target=1)
 
-    assert output == "serialized"
+    if hasattr(output, "output"):
+        assert output.output == "serialized"
+    else:
+        assert output == "serialized"
     assert events[0] == "parser:x = 1:python"

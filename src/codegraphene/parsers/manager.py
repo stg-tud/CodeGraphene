@@ -3,7 +3,7 @@ from __future__ import annotations
 import importlib
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from multiprocessing import cpu_count
-from typing import Any, Callable, Dict, Iterable, List, Tuple
+from typing import Any, Dict, Iterable, List, Tuple
 
 from ..core import CodeGraph
 

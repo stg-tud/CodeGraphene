@@ -1,5 +1,3 @@
-import pytest
-
 from codegraphene.parsers import manager
 from codegraphene.core import CodeGraph, Node
 

@@ -3,10 +3,8 @@ from __future__ import annotations
 import gzip
 import json
 import os
-import shutil
 import tempfile
 from datetime import datetime
-from typing import Any
 
 import networkx as nx
 
@@ -105,8 +103,7 @@ def load_graph(src: str) -> CodeGraph:
 
 # Optional HuggingFace Datasets integration
 try:
-    from datasets import Dataset, DatasetDict
-    from datasets import set_progress_bar_enabled as _hf_progress
+    from datasets import Dataset
     _HF_AVAILABLE = True
 except Exception:  # pragma: no cover - optional dependency
     _HF_AVAILABLE = False
@@ -120,13 +117,10 @@ def save_graph_to_hf(graph: CodeGraph, dataset_id: str, field_name: str = "graph
     if not _HF_AVAILABLE:
         raise RuntimeError("datasets library is not available. Install with extras 'codegraphene[cache]'.")
 
-    import io
 
-    buf = io.BytesIO()
     # default to gzipped node-link JSON
     payload = json.dumps({"meta": {"created": datetime.utcnow().isoformat()}, "graph": nx.node_link_data(graph.nx_graph)}).encode("utf-8")
     gz = gzip.compress(payload)
-    record = {field_name: gz}
     ds = Dataset.from_dict({field_name: [gz]})
     # Save locally as dataset directory or push if dataset_id looks like a hub path
     ds.save_to_disk(dataset_id)
