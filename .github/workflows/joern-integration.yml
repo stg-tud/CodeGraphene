@@ -48,5 +48,7 @@ jobs:
         env:
           RUN_REAL_JOERN: "1"
         run: |
-          pytest -q tests/test_parsers.py::TestJoernParserUnit::test_build_graph_with_dot_file
-          pytest -q tests/test_trimmers.py::test_trimmer_and_serializer_with_joern
+          # Run the parser and trimmer integration tests at file level to avoid
+          # brittle node-id selections that can fail across branches/commits.
+          pytest -q tests/test_parsers.py
+          pytest -q tests/test_trimmers.py
