@@ -1,4 +1,5 @@
 """Serializer that returns the graph as Python lists of nodes and edges."""
+# test
 
 from __future__ import annotations
 
