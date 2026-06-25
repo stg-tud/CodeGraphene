@@ -25,7 +25,13 @@ class JoernParser(BaseParser):
         print(f"[JoernParser] Parsing source code at: {file_path}")
         with tempfile.TemporaryDirectory() as temp_dir:
             dot_file_path = self._generate_dot_file(file_path, temp_dir)
-            return self._load_graph_from_dot(dot_file_path)
+            graph = self._load_graph_from_dot(dot_file_path)
+        graph.source_path = file_path
+        try:
+            graph.source_code = open(file_path, "r", encoding="utf-8", errors="replace").read()
+        except OSError:
+            graph.source_code = None
+        return graph
 
     # ------------------------------------------------------------------
     # DOT generation
