@@ -33,6 +33,15 @@ class JoernParser(BaseParser):
         file_path = context.get("file_path")
         source_code = context.get("source_code")
         language = context.get("language")
+
+        # A Cleaner upstream may have produced cleaned source text and passed it
+        # forward as current_graph. Use it if no explicit source_code was given.
+        if source_code is None and isinstance(current_graph, str):
+            source_code = current_graph
+            if language is None and file_path and "." in file_path:
+                language = file_path.rsplit(".", 1)[-1]
+            file_path = None
+
         if not file_path and not source_code:
             raise ValueError("JoernParser.run() requires 'file_path' or 'source_code'.")
         return self.build_graph(file_path=file_path, source_code=source_code, language=language)

@@ -93,10 +93,10 @@ class GraphPipeline:
             if isinstance(current_value, CodeGraph) and target_node_id is None:
                 target_node_id = self._resolve_target_node_id(current_value, target)
                 print(f"[Pipeline] Target resolved to node {target_node_id}.")
+                
+            # Short-circuit: parser returned a raw artifact (e.g. JSON/XML export)
+            if index == 1 and not isinstance(current_value, CodeGraph):
 
-            # Issue #13 keeps raw exports opt-in, so a non-graph result ends the
-            # pipeline immediately instead of forcing a graph reconstruction.
-            if not isinstance(current_value, CodeGraph):
                 return PipelineResult(
                     output=current_value,
                     kind="joern_export",
