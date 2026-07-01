@@ -48,6 +48,8 @@ class BlackFormatter(BaseCleaner):
             return source_code
 
         if result.returncode != 0:
+            if "No module named black" in result.stderr:
+                return source_code
             raise RuntimeError(
                 f"black failed with exit code {result.returncode}.\n"
                 f"stderr: {result.stderr.strip()}"
