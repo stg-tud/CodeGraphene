@@ -93,9 +93,10 @@ class GraphPipeline:
             if isinstance(current_value, CodeGraph) and target_node_id is None:
                 target_node_id = self._resolve_target_node_id(current_value, target)
                 print(f"[Pipeline] Target resolved to node {target_node_id}.")
-
+                
             # Short-circuit: parser returned a raw artifact (e.g. JSON/XML export)
-            if not isinstance(current_value, CodeGraph):
+            if index == 1 and not isinstance(current_value, CodeGraph):
+
                 return PipelineResult(
                     output=current_value,
                     kind="joern_export",
@@ -123,7 +124,11 @@ class GraphPipeline:
         file_path: str | None = None,
         target: str | int | None = None,
     ) -> list[dict[str, Any]]:
-        """Describe how the pipeline would execute without running it."""
+        """Describe how the pipeline would execute without running it.
+
+        Issue #10 calls for a safe planning mode so contributors can inspect a
+        pipeline before launching heavy external tools like Joern.
+        """
         plan = []
         print("[Pipeline] Dry run plan:")
         for index, component in enumerate(self._components, start=1):

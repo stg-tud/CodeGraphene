@@ -19,6 +19,8 @@ def _worker_parse(parser_path: str, parser_kwargs: Dict[str, Any], input_spec: D
 
     The input_spec should contain either `file_path` or `source_code` (+ `language`).
     """
+    # Issue #11 wants per-worker parser instantiation so multiprocessing does
+    # not share parser state across tasks.
     ParserCls = _resolve_class(parser_path)
     parser = ParserCls(**parser_kwargs)
     # Use the same interface as BaseParser.run: accept context dict.
@@ -45,8 +47,8 @@ def parse_many(
 
     results: List[Tuple[Dict[str, Any], Any]] = []
 
-    # If only one worker requested, run sequentially in-process which makes
-    # it easier to unit-test and to avoid pickling/parsing overhead.
+    # Issue #11 keeps a sequential path for easy testing and for environments
+    # where multiprocessing overhead is not worth the extra complexity.
     if parallel_workers == 1:
         for spec in input_list:
             try:

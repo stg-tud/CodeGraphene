@@ -20,7 +20,11 @@ class BaseParser(BaseComponent):
         """
 
     def run(self, current_graph=None, **context):
-        """Execute the parser and return a graph."""
+        """Execute the parser and return a graph.
+
+        The explicit file_path argument is part of the issue #10 contract: the
+        pipeline should not need parser-specific entry points.
+        """
         file_path = context.get("file_path")
         if not file_path:
             raise ValueError("BaseParser.run() requires 'file_path'.")

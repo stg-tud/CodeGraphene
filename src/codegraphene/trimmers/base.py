@@ -21,7 +21,11 @@ class BaseTrimmer(BaseComponent):
         """
 
     def run(self, current_graph=None, **context):
-        """Execute the trim step using the shared pipeline context."""
+        """Execute the trim step using the shared pipeline context.
+
+        Issue #10 expects all modules to share a forward-call style adapter,
+        so the trimmer receives the resolved target node through context.
+        """
         if current_graph is None:
             raise ValueError("BaseTrimmer.run() requires a graph input.")
         target_node_id = context.get("target_node_id")

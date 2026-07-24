@@ -1,12 +1,13 @@
 import os
+import json
 import subprocess
 import tempfile
 from pathlib import Path
+
 import networkx as nx
 
 from .base import BaseParser
 from ..core import CodeGraph, Node, Edge, NodeGranularity
-
 
 class JoernParser(BaseParser):
     def __init__(
@@ -33,8 +34,18 @@ class JoernParser(BaseParser):
         file_path = context.get("file_path")
         source_code = context.get("source_code")
         language = context.get("language")
+
+        # A Cleaner upstream may have produced cleaned source text and passed it
+        # forward as current_graph. Use it if no explicit source_code was given.
+        if source_code is None and isinstance(current_graph, str):
+            source_code = current_graph
+            if language is None and file_path and "." in file_path:
+                language = file_path.rsplit(".", 1)[-1]
+            file_path = None
+
         if not file_path and not source_code:
             raise ValueError("JoernParser.run() requires 'file_path' or 'source_code'.")
+
         return self.build_graph(file_path=file_path, source_code=source_code, language=language)
 
     def build_graph(
@@ -45,6 +56,7 @@ class JoernParser(BaseParser):
     ):
         input_description = file_path or f"<source_code:{language or 'unknown'}>"
         print(f"[JoernParser] Parsing source code at: {input_description}")
+        
         with tempfile.TemporaryDirectory() as temp_dir:
             resolved_file_path = self._prepare_input_path(
                 file_path=file_path,
@@ -52,9 +64,21 @@ class JoernParser(BaseParser):
                 language=language,
                 temp_dir=temp_dir,
             )
+            # Issue #13 requires this parser to support raw exports as an
+            # explicit opt-in path instead of always forcing a CodeGraph.
             export_artifact = self._generate_dot_file(resolved_file_path, temp_dir)
+            
             if self.export_format == "dot":
                 return self._load_graph_from_dot(export_artifact)
+                
+            # --- PHASE 1: JSON CONTRACT LOGIC ---
+            if self.export_format == "json":
+                try:
+                    return json.loads(export_artifact)
+                except json.JSONDecodeError as e:
+                    snippet = str(export_artifact)[:250]
+                    raise ValueError(f"JSON Decode Error: {e}\nRaw output snippet: {snippet}...")
+                    
             return export_artifact
 
     def describe(self) -> dict:
@@ -65,7 +89,7 @@ class JoernParser(BaseParser):
                 "granularity": self.granularity.granularity_name,
                 "capabilities": ["read_file", "spawn_process"],
                 "input_type": "file_path | source_code",
-                "output_type": "CodeGraph" if self.export_format == "dot" else "str",
+                "output_type": "CodeGraph" if self.export_format == "dot" else "dict" if self.export_format == "json" else "str",
                 "input_modes": ["file_path", "source_code"],
                 "export_format": self.export_format,
                 "parse_timeout_seconds": self.parse_timeout_seconds,
@@ -77,7 +101,6 @@ class JoernParser(BaseParser):
     # ------------------------------------------------------------------
     # DOT generation
     # ------------------------------------------------------------------
-
     def _prepare_input_path(
         self,
         file_path: str | None,
@@ -135,6 +158,8 @@ class JoernParser(BaseParser):
         self._run_joern_export(cpg_out, export_out)
 
         if self.export_format != "dot":
+            # Keep the raw export path visible so notebooks and downstream tools
+            # can inspect Joern's native artifact without rebuilding a graph.
             raw_artifact = self._load_raw_export_artifact(export_out)
             if raw_artifact is not None:
                 return raw_artifact
@@ -206,15 +231,15 @@ class JoernParser(BaseParser):
     # ------------------------------------------------------------------
     # Graph construction
     # ------------------------------------------------------------------
-
     def _load_graph_from_dot(self, dot_file_path: str) -> CodeGraph:
         """Parse a DOT file into a CodeGraph using the configured granularity."""
         print("[JoernParser] Ingesting DOT file into NetworkX...")
         raw_nx_graph = nx.drawing.nx_pydot.read_dot(dot_file_path)
-
         code_graph = CodeGraph()
+
         self._add_nodes(raw_nx_graph, code_graph)
         self._add_edges(raw_nx_graph, code_graph)
+
         return code_graph
 
     def _add_nodes(self, raw_nx_graph: nx.Graph, code_graph: CodeGraph) -> None:
