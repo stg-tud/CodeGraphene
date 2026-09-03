@@ -8,6 +8,8 @@ from .serializers.text import CodeReconstructionSerializer
 
 from .cleaners.base import BaseCleaner
 from .cleaners.black_formatter import BlackFormatter
+from .processors.base import BaseProcessor
+from .processors.method_splitter import MethodSplitterProcessor
 from .core import NodeGranularity
 
 __all__ = [
@@ -20,4 +22,6 @@ __all__ = [
     "NodeGranularity",
     "BaseCleaner",
     "BlackFormatter",
+    "BaseProcessor",
+    "MethodSplitterProcessor",
 ]
