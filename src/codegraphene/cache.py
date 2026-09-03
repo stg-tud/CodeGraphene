@@ -60,7 +60,7 @@ def save_graph(graph: CodeGraph, dest: str, format: str = "auto", overwrite: boo
         return dest
 
     # Default: node-link JSON, gzip compressed
-    data = nx.node_link_data(graph.nx_graph)
+    data = nx.node_link_data(graph.nx_graph, edges="links")
     payload = json.dumps({"meta": {"created": datetime.utcnow().isoformat()}, "graph": data}).encode("utf-8")
     if fmt == "gz":
         buf = gzip.compress(payload)
@@ -101,7 +101,7 @@ def load_graph(src: str) -> CodeGraph:
     except Exception:
         raise RuntimeError("Unsupported graph format for file: %s" % src)
 
-    nx_g = nx.node_link_graph(node_link)
+    nx_g = nx.node_link_graph(node_link, edges="links")
     cg = CodeGraph()
     cg.nx_graph = nx_g
     return cg
@@ -117,7 +117,7 @@ except Exception:  # pragma: no cover - optional dependency
 
 def _graph_to_gz_bytes(graph: CodeGraph) -> bytes:
     payload = json.dumps(
-        {"meta": {"created": datetime.utcnow().isoformat()}, "graph": nx.node_link_data(graph.nx_graph)}
+        {"meta": {"created": datetime.utcnow().isoformat()}, "graph": nx.node_link_data(graph.nx_graph, edges="links")}
     ).encode("utf-8")
     return gzip.compress(payload)
 
@@ -125,7 +125,7 @@ def _graph_to_gz_bytes(graph: CodeGraph) -> bytes:
 def _gz_bytes_to_graph(data: bytes) -> CodeGraph:
     payload = json.loads(gzip.decompress(data).decode("utf-8"))
     cg = CodeGraph()
-    cg.nx_graph = nx.node_link_graph(payload["graph"])
+    cg.nx_graph = nx.node_link_graph(payload["graph"], edges="links")
     return cg
 
 
