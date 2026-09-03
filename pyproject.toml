@@ -17,11 +17,26 @@ dependencies = [
 [tool.setuptools.packages.find]
 where = ["src"]
 
+[tool.setuptools.package-data]
+# Bundled Joern CPGQL scripts (codegraphene.taint.joern_query) -- must ship
+# in built wheels/sdists too, not just editable installs.
+"codegraphene.taint" = ["scripts/*.sc"]
+
 [tool.ruff]
 exclude = [
     "examples/sample_code.py",
     "examples/*.ipynb",
 ]
+
+[tool.ruff.lint]
+# Pinned explicitly: with no [tool.ruff.lint] section at all, "ruff check ."
+# resolves to whatever ruff's own default select list is *for the installed
+# ruff version* -- and that list has broadened release over release, so an
+# unpinned `pip install ruff` in CI silently grew from ~4 pyflakes/pycodestyle
+# rule groups to 100+ findings across code nobody had re-linted against the
+# new rules. Pin the classic conservative default explicitly so CI doesn't
+# drift again on a future ruff upgrade.
+select = ["E4", "E7", "E9", "F"]
 
 [project.optional-dependencies]
 cache = ["datasets>=2.0"]
