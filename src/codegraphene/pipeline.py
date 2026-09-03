@@ -7,8 +7,8 @@ from typing import Any
 from .core import BaseComponent, CodeGraph, NodeGranularity, PipelineResult, TargetSpec
 from .parsers.base import BaseParser
 from .parsers.joern import JoernParser
-from .trimmers.base import BaseTrimmer
 from .serializers.base import BaseSerializer
+from .trimmers.base import BaseTrimmer
 
 
 class GraphPipeline:

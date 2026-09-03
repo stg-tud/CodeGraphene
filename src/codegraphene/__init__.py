@@ -1,54 +1,57 @@
 """Public API for the codegraphene package."""
 
-from .core import BaseComponent, CodeGraph
-from .pipeline import GraphPipeline
-from .parsers.joern import JoernParser
-from .trimmers.khop import KHopTrimmer
-from .trimmers.slicer import ProgramSlicer
-from .trimmers.taint_flow import TaintFlowTrimmer
-from .trimmers.block_aware import BlockAwareTrimmer
-from .serializers.text import CodeReconstructionSerializer
-
+from .blocks import (
+    CodeBlock,
+    analyze_c_code,
+    find_enclosing_blocks,
+    smallest_enclosing_block,
+)
 from .cleaners.base import BaseCleaner
 from .cleaners.black_formatter import BlackFormatter
+from .core import BaseComponent, CodeGraph, NodeGranularity
+from .parsers.joern import JoernParser
+from .pipeline import GraphPipeline
 from .processors.base import BaseProcessor
 from .processors.method_splitter import MethodSplitterProcessor
-from .core import NodeGranularity
-from .blocks import CodeBlock, analyze_c_code, find_enclosing_blocks, smallest_enclosing_block
+from .serializers.text import CodeReconstructionSerializer
 from .taint import (
+    CWE_TEMPLATES,
+    CWETemplate,
+    TaintExtractor,
     TaintFlow,
     TaintFlowElement,
-    TaintExtractor,
-    CWETemplate,
-    CWE_TEMPLATES,
     get_template,
     supported_cwes,
 )
+from .trimmers.block_aware import BlockAwareTrimmer
+from .trimmers.khop import KHopTrimmer
+from .trimmers.slicer import ProgramSlicer
+from .trimmers.taint_flow import TaintFlowTrimmer
 
 __all__ = [
+    "CWE_TEMPLATES",
+    "BaseCleaner",
     "BaseComponent",
+    "BaseProcessor",
+    "BlackFormatter",
+    "BlockAwareTrimmer",
+    "CWETemplate",
+    "CodeBlock",
     "CodeGraph",
+    "CodeReconstructionSerializer",
     "GraphPipeline",
     "JoernParser",
     "KHopTrimmer",
-    "ProgramSlicer",
-    "TaintFlowTrimmer",
-    "BlockAwareTrimmer",
-    "CodeReconstructionSerializer",
-    "NodeGranularity",
-    "BaseCleaner",
-    "BlackFormatter",
-    "BaseProcessor",
     "MethodSplitterProcessor",
-    "CodeBlock",
-    "analyze_c_code",
-    "find_enclosing_blocks",
-    "smallest_enclosing_block",
+    "NodeGranularity",
+    "ProgramSlicer",
+    "TaintExtractor",
     "TaintFlow",
     "TaintFlowElement",
-    "TaintExtractor",
-    "CWETemplate",
-    "CWE_TEMPLATES",
+    "TaintFlowTrimmer",
+    "analyze_c_code",
+    "find_enclosing_blocks",
     "get_template",
+    "smallest_enclosing_block",
     "supported_cwes",
 ]

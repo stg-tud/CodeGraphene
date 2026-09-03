@@ -15,7 +15,7 @@ against a granularity-filtered graph will silently miss those paths.
 
 from __future__ import annotations
 
-from typing import Literal, Optional, Sequence
+from typing import Literal, Sequence
 
 import networkx as nx
 
@@ -47,7 +47,7 @@ class ProgramSlicer(BaseTrimmer):
     def __init__(
         self,
         direction: Direction = "both",
-        edge_types: Optional[Sequence[str]] = None,
+        edge_types: Sequence[str] | None = None,
         expand_to_full_lines: bool = False,
     ) -> None:
         self.direction = direction
