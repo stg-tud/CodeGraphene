@@ -67,10 +67,16 @@ class JoernParser(BaseParser):
             # Issue #13 requires this parser to support raw exports as an
             # explicit opt-in path instead of always forcing a CodeGraph.
             export_artifact = self._generate_dot_file(resolved_file_path, temp_dir)
-            
+
             if self.export_format == "dot":
-                return self._load_graph_from_dot(export_artifact)
-                
+                graph = self._load_graph_from_dot(export_artifact)
+                # Carry the source text/path along so block-aware and
+                # taint-flow trimmers/serializers can recover line text
+                # from the graph alone (they don't re-read the file).
+                graph.source_path = file_path
+                graph.source_code = source_code if source_code is not None else self._read_text(resolved_file_path)
+                return graph
+
             # --- PHASE 1: JSON CONTRACT LOGIC ---
             if self.export_format == "json":
                 try:
@@ -78,8 +84,16 @@ class JoernParser(BaseParser):
                 except json.JSONDecodeError as e:
                     snippet = str(export_artifact)[:250]
                     raise ValueError(f"JSON Decode Error: {e}\nRaw output snippet: {snippet}...")
-                    
+
             return export_artifact
+
+    @staticmethod
+    def _read_text(path: str) -> str | None:
+        try:
+            with open(path, "r", encoding="utf-8", errors="replace") as handle:
+                return handle.read()
+        except OSError:
+            return None
 
     def describe(self) -> dict:
         info = super().describe()

@@ -178,8 +178,12 @@ class PipelineResult:
 
 
 class CodeGraph:
-    def __init__(self):
+    def __init__(self, source_code: str | None = None, source_path: str | None = None):
         self.nx_graph = nx.MultiDiGraph()
+        # Optional: original source text and path the graph was built from.
+        # Used by block-aware trimming/serialization to access line text.
+        self.source_code = source_code
+        self.source_path = source_path
 
     def add_node(self, node: Node):
         if node.line_number is None and "LINE_NUMBER" in node.properties:

@@ -36,15 +36,11 @@ class KHopTrimmer(BaseTrimmer):
             search_view = nx_graph
 
         if target_node_id not in search_view:
-            return (
-                CodeGraph()
-            )  # Return empty graph if target node is not in the filtered view
+            return CodeGraph(source_code=graph.source_code, source_path=graph.source_path)
 
-        ego = nx.ego_graph(
-            search_view, target_node_id, radius=self.hops, undirected=True
-        )
+        ego = nx.ego_graph(search_view, target_node_id, radius=self.hops, undirected=True)
 
-        trimmed_graph = CodeGraph()
+        trimmed_graph = CodeGraph(source_code=graph.source_code, source_path=graph.source_path)
 
         for _, data in ego.nodes(data=True):
             trimmed_graph.add_node(Node(**data))
