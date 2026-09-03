@@ -213,12 +213,41 @@ class PipelineResult:
 
 
 class CodeGraph:
-    def __init__(self, source_code: str | None = None, source_path: str | None = None):
+    def __init__(
+        self,
+        source_code: str | None = None,
+        source_path: str | None = None,
+        cpg_path: str | None = None,
+    ):
         self.nx_graph = nx.MultiDiGraph()
         # Optional: original source text and path the graph was built from.
         # Used by block-aware trimming/serialization to access line text.
         self.source_code = source_code
         self.source_path = source_path
+        # Optional: path to the persisted Joern CPG binary this graph was
+        # exported from (see JoernParser(keep_cpg_at=...)). Lets
+        # find_taint_flows() reuse it for real interprocedural dataflow
+        # queries without re-parsing the source.
+        self.cpg_path = cpg_path
+
+    def find_taint_flows(self, source_pattern: str, sink_pattern: str, **kwargs):
+        """Run Joern's own interprocedural reachableByFlows against this
+        graph's persisted CPG (see `codegraphene.taint.joern_query`).
+
+        Requires `cpg_path` to be set, i.e. this graph came from
+        JoernParser(keep_cpg_at=...). Unlike TaintExtractor/ProgramSlicer
+        (which traverse the statically exported REACHING_DEF/CDG edges,
+        intraprocedural only), this crosses function-call boundaries.
+        """
+        if not self.cpg_path:
+            raise ValueError(
+                "This CodeGraph has no persisted CPG (cpg_path is None). "
+                "Build it with JoernParser(keep_cpg_at=...) to enable "
+                "find_taint_flows() without re-parsing the source."
+            )
+        from .taint.joern_query import find_taint_flows
+
+        return find_taint_flows(self.cpg_path, source_pattern, sink_pattern, **kwargs)
 
     def add_node(self, node: Node):
         if node.line_number is None and "LINE_NUMBER" in node.properties:

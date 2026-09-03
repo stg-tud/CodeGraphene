@@ -76,7 +76,7 @@ class TaintFlowTrimmer(BaseTrimmer):
             keep_ids.add(target_node_id)
 
         if not keep_ids:
-            return CodeGraph(source_code=graph.source_code, source_path=graph.source_path)
+            return CodeGraph(source_code=graph.source_code, source_path=graph.source_path, cpg_path=graph.cpg_path)
 
         if self.context_hops > 0:
             keep_ids = self._expand_neighbourhood(graph, keep_ids, self.context_hops)
@@ -102,7 +102,7 @@ class TaintFlowTrimmer(BaseTrimmer):
 
     def _induced_subgraph(self, graph: CodeGraph, node_ids: set[str]) -> CodeGraph:
         nxg = graph.nx_graph
-        out = CodeGraph(source_code=graph.source_code, source_path=graph.source_path)
+        out = CodeGraph(source_code=graph.source_code, source_path=graph.source_path, cpg_path=graph.cpg_path)
         for nid in node_ids:
             if nid not in nxg:
                 continue

@@ -96,7 +96,7 @@ class ProgramSlicer(BaseTrimmer):
 
     def _induced_subgraph(self, graph: CodeGraph, node_ids: set[str]) -> CodeGraph:
         nx_graph = graph.nx_graph
-        out = CodeGraph(source_code=graph.source_code, source_path=graph.source_path)
+        out = CodeGraph(source_code=graph.source_code, source_path=graph.source_path, cpg_path=graph.cpg_path)
         for nid in node_ids:
             out.add_node(Node(**nx_graph.nodes[nid]))
         for u, v, data in nx_graph.edges(data=True):

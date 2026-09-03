@@ -23,6 +23,7 @@ def _compose_graphs(graphs: list[CodeGraph]) -> CodeGraph:
         if getattr(g, "source_code", None) is not None:
             result.source_code = g.source_code
             result.source_path = g.source_path
+            result.cpg_path = getattr(g, "cpg_path", None)
             break
     return result
 

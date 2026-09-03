@@ -17,6 +17,11 @@ dependencies = [
 [tool.setuptools.packages.find]
 where = ["src"]
 
+[tool.setuptools.package-data]
+# Bundled Joern CPGQL scripts (codegraphene.taint.joern_query) -- must ship
+# in built wheels/sdists too, not just editable installs.
+"codegraphene.taint" = ["scripts/*.sc"]
+
 [tool.ruff]
 exclude = [
     "examples/sample_code.py",
