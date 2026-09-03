@@ -6,6 +6,7 @@ from codegraphene.parsers.base import BaseParser
 from codegraphene.serializers.base import BaseSerializer
 from codegraphene.serializers.text import CodeReconstructionSerializer
 from codegraphene.trimmers.base import BaseTrimmer
+from codegraphene.trimmers.khop import KHopTrimmer
 
 
 class RecordingParser(BaseParser):
@@ -142,3 +143,54 @@ def test_pipeline_forwards_source_code_context():
     else:
         assert output == "serialized"
     assert events[0] == "parser:x = 1:python"
+
+
+class TwoIslandParser(BaseParser):
+    """Two disconnected components, each with one node matching label 'HIT'."""
+
+    def build_graph(self, file_path: str) -> CodeGraph:
+        graph = CodeGraph()
+        graph.add_node(Node(id="hit-1", label="HIT", code="a", line_number=1))
+        graph.add_node(Node(id="neighbor-1", label="OTHER", code="b", line_number=2))
+        graph.add_edge(Edge(source="hit-1", target="neighbor-1", label="AST"))
+
+        graph.add_node(Node(id="hit-2", label="HIT", code="c", line_number=10))
+        graph.add_node(Node(id="neighbor-2", label="OTHER", code="d", line_number=11))
+        graph.add_edge(Edge(source="hit-2", target="neighbor-2", label="AST"))
+        return graph
+
+
+def test_pipeline_multi_target_unions_khop_results_across_all_matches():
+    pipeline = GraphPipeline(components=[TwoIslandParser(), KHopTrimmer(hops=1)])
+
+    result = pipeline.run(file_path="two_islands.py", target="HIT")
+
+    ids = {n.id for n in result.output.get_nodes()}
+    assert ids == {"hit-1", "neighbor-1", "hit-2", "neighbor-2"}
+    assert sorted(result.metadata["target_node_ids"]) == ["hit-1", "hit-2"]
+
+
+def test_pipeline_single_target_match_is_unaffected_by_multi_target_path():
+    """A target that matches exactly one node still takes the plain single-run path."""
+    events: list[str] = []
+    pipeline = GraphPipeline(
+        components=[RecordingParser(events), RecordingTrimmer("trim", events)]
+    )
+
+    result = pipeline.run(file_path="sample.py", target="TARGET")
+
+    assert events == ["parser:sample.py", "trim:1"]
+    assert result.metadata["target_node_ids"] == ["1"]
+
+
+def test_pipeline_accepts_a_list_of_trimmers_run_in_sequence():
+    """Issue #5: trimmer=[...] runs each trimmer in order, same as components=."""
+    events: list[str] = []
+    pipeline = GraphPipeline(
+        parser=RecordingParser(events),
+        trimmer=[RecordingTrimmer("trim-1", events), RecordingTrimmer("trim-2", events)],
+    )
+
+    pipeline.run(file_path="sample.py", target=1)
+
+    assert events == ["parser:sample.py", "trim-1:1", "trim-2:1"]
