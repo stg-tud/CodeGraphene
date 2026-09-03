@@ -22,7 +22,7 @@ jobs:
         run: pip install -e .
 
       - name: Install tooling
-        run: pip install pytest ruff black
+        run: pip install pytest "ruff==0.16.5" black
 
       - name: Run linter
         run: ruff check .
