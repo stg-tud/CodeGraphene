@@ -4,6 +4,7 @@ from .core import BaseComponent, CodeGraph
 from .pipeline import GraphPipeline
 from .parsers.joern import JoernParser
 from .trimmers.khop import KHopTrimmer
+from .trimmers.slicer import ProgramSlicer
 from .trimmers.taint_flow import TaintFlowTrimmer
 from .trimmers.block_aware import BlockAwareTrimmer
 from .serializers.text import CodeReconstructionSerializer
@@ -30,6 +31,7 @@ __all__ = [
     "GraphPipeline",
     "JoernParser",
     "KHopTrimmer",
+    "ProgramSlicer",
     "TaintFlowTrimmer",
     "BlockAwareTrimmer",
     "CodeReconstructionSerializer",

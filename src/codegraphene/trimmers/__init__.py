@@ -2,5 +2,6 @@
 
 from .base import BaseTrimmer
 from .khop import KHopTrimmer
+from .slicer import ProgramSlicer
 
-__all__ = ["BaseTrimmer", "KHopTrimmer"]
+__all__ = ["BaseTrimmer", "KHopTrimmer", "ProgramSlicer"]

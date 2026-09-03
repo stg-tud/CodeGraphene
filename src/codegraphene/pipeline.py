@@ -92,7 +92,7 @@ class GraphPipeline:
                     **context,
                 )
 
-            if isinstance(current_value, CodeGraph) and target_node_id is None:
+            if isinstance(current_value, CodeGraph) and target_node_id is None and target is not None:
                 target_node_id = self._resolve_target_node_id(current_value, target)
                 print(f"[Pipeline] Target resolved to node {target_node_id}.")
                 

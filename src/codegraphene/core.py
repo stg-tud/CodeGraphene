@@ -48,6 +48,7 @@ class NodeGranularity:
     LINE:   ClassVar[NodeGranularity]
     METHOD: ClassVar[NodeGranularity]
     FILE:   ClassVar[NodeGranularity]
+    RAW:    ClassVar[NodeGranularity]
 
     def __init__(
         self,
@@ -128,6 +129,22 @@ NodeGranularity.FILE = NodeGranularity(
     code_attr="NAME",
     line_attr=None,
     granularity_name="FILE",
+)
+NodeGranularity.RAW = NodeGranularity(
+    # Empty required_attrs: every CPG node type passes is_valid(), so no
+    # node or edge is dropped. This is the full, unfiltered CPG -- needed
+    # by trimmers that traverse semantic edges (REACHING_DEF, CDG), since
+    # those edges reach node types (METHOD, METHOD_PARAMETER_IN/OUT,
+    # METHOD_RETURN, ...) that LINE/METHOD/FILE granularity filter out.
+    # label_attr="label" uses the DOT label (the actual CPG node type,
+    # e.g. "CALL", "METHOD") rather than a semantic name, since that's the
+    # one attribute every node type has -- also the natural vocabulary key
+    # for GNN-style node/edge type embeddings.
+    required_attrs=set(),
+    label_attr="label",
+    code_attr="CODE",
+    line_attr="LINE_NUMBER",
+    granularity_name="RAW",
 )
 
 
