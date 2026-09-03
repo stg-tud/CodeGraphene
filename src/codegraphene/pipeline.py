@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from .core import BaseComponent, CodeGraph, NodeGranularity, PipelineResult
+from .core import BaseComponent, CodeGraph, NodeGranularity, PipelineResult, TargetSpec
 from .parsers.base import BaseParser
 from .parsers.joern import JoernParser
 from .trimmers.base import BaseTrimmer
@@ -50,7 +50,7 @@ class GraphPipeline:
     def run(
         self,
         file_path: str | None = None,
-        target: str | int | None = None,
+        target: TargetSpec | None = None,
         **context: Any,
     ) -> PipelineResult:
         """Execute the full pipeline on *file_path*.
@@ -60,7 +60,9 @@ class GraphPipeline:
             source_code: Optional raw source text forwarded to the parser.
             language: Optional language hint forwarded to the parser.
             target: Identifies the focal node for trimming. Pass an ``int``
-                    to match by line number, or a ``str`` to match by label.
+                    to match by line number, a ``str`` to match by exact
+                    label, a compiled ``re.Pattern`` to search label/code,
+                    or a ``Callable[[Node], bool]`` predicate.
 
         Returns:
             A :class:`PipelineResult` wrapping the final output. The caller
@@ -122,7 +124,7 @@ class GraphPipeline:
     def dry_run(
         self,
         file_path: str | None = None,
-        target: str | int | None = None,
+        target: TargetSpec | None = None,
     ) -> list[dict[str, Any]]:
         """Describe how the pipeline would execute without running it.
 
@@ -144,7 +146,7 @@ class GraphPipeline:
             )
         return plan
 
-    def _resolve_target_node_id(self, graph: CodeGraph, target: str | int) -> str:
+    def _resolve_target_node_id(self, graph: CodeGraph, target: TargetSpec) -> str:
         """Resolve a user target to the first matching node id."""
         granularity = self._get_granularity()
         target_nodes = granularity.find_target_nodes(graph, target)

@@ -1,10 +1,13 @@
 from __future__ import annotations
 
+import re
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import Any, ClassVar, Dict, Iterator, List, Set
+from typing import Any, Callable, ClassVar, Dict, Iterator, List, Set, Union
 
 import networkx as nx
+
+TargetSpec = Union[str, int, "re.Pattern[str]", Callable[["Node"], bool]]
 
 
 class BaseComponent(ABC):
@@ -77,8 +80,23 @@ class NodeGranularity:
         except (KeyError, ValueError):
             return None
 
-    def find_target_nodes(self, graph: CodeGraph, target: str | int) -> list[Node]:
-        """Return nodes whose line number or label attribute matches *target*."""
+    def find_target_nodes(self, graph: CodeGraph, target: TargetSpec) -> list[Node]:
+        """Return nodes matching *target*.
+
+        Accepts an ``int`` (line number, only meaningful when this
+        granularity has a ``line_attr``), a ``str`` (exact label match), a
+        compiled ``re.Pattern`` (searched against the node's label and code,
+        e.g. to find any CALL node invoking a function matching a pattern),
+        or a ``Callable[[Node], bool]`` predicate for arbitrary matching.
+        """
+        if isinstance(target, re.Pattern):
+            return [
+                node for node in graph.get_nodes()
+                if target.search(node.label or "") or (node.code and target.search(node.code))
+            ]
+        if callable(target):
+            return [node for node in graph.get_nodes() if target(node)]
+
         matches = []
         for node in graph.get_nodes():
             if self.line_attr is not None and isinstance(target, int):
