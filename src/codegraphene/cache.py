@@ -3,6 +3,7 @@ from __future__ import annotations
 import gzip
 import json
 import os
+import pickle
 import tempfile
 from datetime import datetime
 
@@ -50,9 +51,11 @@ def save_graph(graph: CodeGraph, dest: str, format: str = "auto", overwrite: boo
         fmt = format
 
     if fmt == "gpickle":
-        # networkx write_gpickle is atomic enough when writing to tmp and replace
+        # nx.write_gpickle/read_gpickle were removed in networkx>=3.0; the
+        # documented replacement is plain pickle of the graph object.
         tmp = dest + ".tmp"
-        nx.write_gpickle(graph.nx_graph, tmp)
+        with open(tmp, "wb") as handle:
+            pickle.dump(graph.nx_graph, handle)
         os.replace(tmp, dest)
         return dest
 
@@ -75,7 +78,8 @@ def load_graph(src: str) -> CodeGraph:
     Detects gzip by extension and uses node-link format for JSON inputs.
     """
     if src.endswith(".gpickle"):
-        nx_g = nx.read_gpickle(src)
+        with open(src, "rb") as handle:
+            nx_g = pickle.load(handle)
         cg = CodeGraph()
         cg.nx_graph = nx_g
         return cg

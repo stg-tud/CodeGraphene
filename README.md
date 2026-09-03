@@ -31,9 +31,11 @@ pipeline = GraphPipeline(
 
 # 2. Extract highly-compressed context for a specific target
 # (e.g., finding the context around line 30 in a target file)
-llm_prompt = pipeline.run(file_path="examples/sample_code.py", target=30)
+result = pipeline.run(file_path="examples/sample_code.py", target=30)
 
-print(llm_prompt)
+# `run()` always returns a PipelineResult, regardless of whether the
+# pipeline completed fully or short-circuited on a raw parser export.
+print(result.output)
 ```
 
 ---

@@ -18,3 +18,13 @@ def test_save_load_gz(tmp_path):
     loaded = load_graph(dest)
     assert isinstance(loaded, CodeGraph)
     assert loaded.nx_graph.number_of_nodes() == cg.nx_graph.number_of_nodes()
+
+
+def test_save_load_gpickle(tmp_path):
+    cg = make_simple_graph()
+    dest = str(tmp_path / "g.gpickle")
+    save_graph(cg, dest, format="gpickle", overwrite=True)
+    assert os.path.exists(dest)
+    loaded = load_graph(dest)
+    assert isinstance(loaded, CodeGraph)
+    assert loaded.nx_graph.number_of_nodes() == cg.nx_graph.number_of_nodes()
