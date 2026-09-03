@@ -5,18 +5,41 @@ from ..core import CodeGraph, NodeGranularity
 
 
 class CodeReconstructionSerializer(BaseSerializer):
-    def __init__(self, granularity: NodeGranularity = NodeGranularity.LINE) -> None:
+    def __init__(
+        self,
+        granularity: NodeGranularity = NodeGranularity.LINE,
+        line_template: str = "Line {line}: {code}",
+        separator: str = "\n",
+    ) -> None:
         """
         :param granularity: Controls which node properties are used to extract
                             code content and line ordering. Defaults to NodeGranularity.LINE.
+        :param line_template: Template used for line-aware entries. Must accept
+                              ``line`` and ``code`` placeholders.
+        :param separator: Separator used between serialized entries.
         """
         self.granularity = granularity
+        self.line_template = line_template
+        self.separator = separator
 
     def serialize(self, graph: CodeGraph) -> str:
         """Reconstructs source code sequentially from the nodes in the graph."""
         if self.granularity.line_attr is None:
             return self._serialize_unordered(graph)
         return self._serialize_by_line(graph)
+
+    def describe(self) -> dict:
+        info = super().describe()
+        info.update(
+            {
+                "name": "CodeReconstructionSerializer",
+                "granularity": self.granularity.granularity_name,
+                "line_template": self.line_template,
+                "separator": self.separator,
+                "output_type": "str",
+            }
+        )
+        return info
 
     def _serialize_by_line(self, graph: CodeGraph) -> str:
         """Serialize nodes ordered by line number, deduplicating by longest code per line."""
@@ -55,8 +78,13 @@ class CodeReconstructionSerializer(BaseSerializer):
             if line_number not in lines or len(code) > len(lines[line_number]):
                 lines[line_number] = code
 
-        return "\n".join(
-            f"Line {ln}: {lines[ln]}" for ln in sorted(lines.keys())
+        return self.separator.join(
+            self.line_template.format(
+                line=ln,
+                code=lines[ln],
+                granularity=self.granularity.granularity_name,
+            )
+            for ln in sorted(lines.keys())
         )
 
     def _serialize_unordered(self, graph: CodeGraph) -> str:
@@ -66,7 +94,7 @@ class CodeReconstructionSerializer(BaseSerializer):
             code = self.granularity.extract_code(node.properties)
             if code and code != "<empty>":
                 entries.append(code)
-        return "\n".join(entries)
+        return self.separator.join(entries)
 
 
 class TextualGraphSerializer(BaseSerializer):
@@ -79,3 +107,13 @@ class TextualGraphSerializer(BaseSerializer):
             edge_type = data.get("label", "CONNECTS_TO")
             output.append(f"Node {u} {edge_type} Node {v}")
         return "\n".join(output)
+
+    def describe(self) -> dict:
+        info = super().describe()
+        info.update(
+            {
+                "name": "TextualGraphSerializer",
+                "output_type": "str",
+            }
+        )
+        return info

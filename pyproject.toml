@@ -18,5 +18,10 @@ dependencies = [
 where = ["src"]
 
 [tool.ruff]
-# In addition to the standard set of exclusions, omit all tests, plus a specific file.
-extend-exclude = ["examples/sample_code.py"]
+exclude = [
+    "examples/sample_code.py",
+    "examples/*.ipynb",
+]
+
+[project.optional-dependencies]
+cache = ["datasets>=2.0"]

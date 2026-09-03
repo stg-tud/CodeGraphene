@@ -1,7 +1,46 @@
 from __future__ import annotations
-import networkx as nx
+
+import re
+from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import ClassVar, Dict, Any, List, Set
+from typing import Any, Callable, ClassVar, Dict, Iterator, List, Set, Union
+
+import networkx as nx
+
+TargetSpec = Union[str, int, "re.Pattern[str]", Callable[["Node"], bool]]
+
+
+class BaseComponent(ABC):
+    """Shared base class for pipeline modules.
+
+    Components expose a tiny, uniform contract so the pipeline can inspect
+    and execute them in sequence.
+    """
+
+    name: str | None = None
+
+    @abstractmethod
+    def run(self, current_graph=None, **context):
+        """Execute the component with the given graph and context.
+
+        Issue #10 asks for a common module API so the pipeline can call every
+        parser, trimmer, and serializer through the same entry point.
+        """
+
+    def describe(self) -> dict[str, Any]:
+        """Return metadata used by dry-run planning and logging."""
+        return {
+            "name": self.name or self.__class__.__name__,
+            "component_type": self.__class__.__name__,
+            "input_type": "CodeGraph",
+            "output_type": "CodeGraph",
+            "requires_context": [],
+            "capabilities": [],
+        }
+
+    def modules(self) -> Iterator[BaseComponent]:
+        """Yield nested modules if the component acts as a container."""
+        return iter(())
 
 
 class NodeGranularity:
@@ -9,6 +48,7 @@ class NodeGranularity:
     LINE:   ClassVar[NodeGranularity]
     METHOD: ClassVar[NodeGranularity]
     FILE:   ClassVar[NodeGranularity]
+    RAW:    ClassVar[NodeGranularity]
 
     def __init__(
         self,
@@ -21,7 +61,7 @@ class NodeGranularity:
         self.required_attrs = frozenset(required_attrs)
         self.label_attr = label_attr
         self.code_attr = code_attr
-        self.line_attr = line_attr  # None means granularity has no meaningful line ordering
+        self.line_attr = line_attr
         self.granularity_name = granularity_name
 
     def is_valid(self, data: dict) -> bool:
@@ -41,8 +81,23 @@ class NodeGranularity:
         except (KeyError, ValueError):
             return None
 
-    def find_target_nodes(self, graph: CodeGraph, target: str | int) -> list[Node]:
-        """Return nodes whose line number or label attribute matches *target*."""
+    def find_target_nodes(self, graph: CodeGraph, target: TargetSpec) -> list[Node]:
+        """Return nodes matching *target*.
+
+        Accepts an ``int`` (line number, only meaningful when this
+        granularity has a ``line_attr``), a ``str`` (exact label match), a
+        compiled ``re.Pattern`` (searched against the node's label and code,
+        e.g. to find any CALL node invoking a function matching a pattern),
+        or a ``Callable[[Node], bool]`` predicate for arbitrary matching.
+        """
+        if isinstance(target, re.Pattern):
+            return [
+                node for node in graph.get_nodes()
+                if target.search(node.label or "") or (node.code and target.search(node.code))
+            ]
+        if callable(target):
+            return [node for node in graph.get_nodes() if target(node)]
+
         matches = []
         for node in graph.get_nodes():
             if self.line_attr is not None and isinstance(target, int):
@@ -75,6 +130,22 @@ NodeGranularity.FILE = NodeGranularity(
     line_attr=None,
     granularity_name="FILE",
 )
+NodeGranularity.RAW = NodeGranularity(
+    # Empty required_attrs: every CPG node type passes is_valid(), so no
+    # node or edge is dropped. This is the full, unfiltered CPG -- needed
+    # by trimmers that traverse semantic edges (REACHING_DEF, CDG), since
+    # those edges reach node types (METHOD, METHOD_PARAMETER_IN/OUT,
+    # METHOD_RETURN, ...) that LINE/METHOD/FILE granularity filter out.
+    # label_attr="label" uses the DOT label (the actual CPG node type,
+    # e.g. "CALL", "METHOD") rather than a semantic name, since that's the
+    # one attribute every node type has -- also the natural vocabulary key
+    # for GNN-style node/edge type embeddings.
+    required_attrs=set(),
+    label_attr="label",
+    code_attr="CODE",
+    line_attr="LINE_NUMBER",
+    granularity_name="RAW",
+)
 
 
 @dataclass
@@ -82,6 +153,37 @@ class Node:
     id: str
     label: str
     properties: Dict[str, Any] = field(default_factory=dict)
+    code: str | None = None
+    line_number: int | None = None
+
+    def __post_init__(self) -> None:
+        if self.code is None and "CODE" in self.properties:
+            self.code = self.properties["CODE"]
+        if self.line_number is None and "LINE_NUMBER" in self.properties:
+            try:
+                self.line_number = int(self.properties["LINE_NUMBER"])
+            except (TypeError, ValueError):
+                self.line_number = None
+        if self.code is not None:
+            self.properties.setdefault("CODE", self.code)
+        if self.line_number is not None:
+            self.properties.setdefault("LINE_NUMBER", self.line_number)
+        if self.label is not None:
+            self.properties.setdefault("label", self.label)
+
+    def __getitem__(self, key: str) -> Any:
+        if key == "id":
+            return self.id
+        if key == "label":
+            return self.label
+        if key == "properties":
+            return self.properties
+        if key == "code":
+            return self.code
+        if key == "line_number":
+            return self.line_number
+        raise KeyError(key)
+
 
 @dataclass
 class Edge:
@@ -90,12 +192,50 @@ class Edge:
     label: str
 
 
+@dataclass
+class PipelineResult:
+    """Wrapper for all pipeline.run() outputs.
+
+    Ensures callers always receive the same type regardless of
+    whether the pipeline completed fully or short-circuited.
+    """
+
+    output: Any
+    kind: str
+    """One of: 'codegraph', 'serialized_code', 'joern_export'."""
+    output_type: str
+    """Python type name of output, e.g. 'CodeGraph', 'str', 'dict'."""
+    format: str
+    """One of: 'graph', 'text', 'json', 'xml', 'dot'."""
+    steps_executed: int
+    steps: List[str] = field(default_factory=list)
+    metadata: dict = field(default_factory=dict)
+
+
 class CodeGraph:
-    def __init__(self):
+    def __init__(self, source_code: str | None = None, source_path: str | None = None):
         self.nx_graph = nx.MultiDiGraph()
+        # Optional: original source text and path the graph was built from.
+        # Used by block-aware trimming/serialization to access line text.
+        self.source_code = source_code
+        self.source_path = source_path
 
     def add_node(self, node: Node):
-        self.nx_graph.add_node(node.id, **node.__dict__)
+        if node.line_number is None and "LINE_NUMBER" in node.properties:
+            try:
+                node.line_number = int(node.properties["LINE_NUMBER"])
+            except (TypeError, ValueError):
+                node.line_number = None
+        if node.code is None and "CODE" in node.properties:
+            node.code = node.properties["CODE"]
+        node_data = {
+            "id": node.id,
+            "label": node.label,
+            "properties": node.properties,
+            "code": node.code,
+            "line_number": node.line_number,
+        }
+        self.nx_graph.add_node(node.id, **node_data)
 
     def add_edge(self, edge: Edge):
         self.nx_graph.add_edge(edge.source, edge.target, label=edge.label)
