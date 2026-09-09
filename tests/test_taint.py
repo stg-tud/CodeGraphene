@@ -4,7 +4,6 @@ import pytest
 
 from codegraphene.core import CodeGraph, Edge, Node
 from codegraphene.taint import (
-    CWE_TEMPLATES,
     CWETemplate,
     TaintExtractor,
     TaintFlow,

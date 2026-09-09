@@ -5,7 +5,7 @@ C/C++ block boundaries so the resulting slice is brace-balanced.
 
 from __future__ import annotations
 
-from typing import List, Optional, Set
+from typing import List, Set
 
 from ..blocks import CodeBlock, analyze_c_code, smallest_enclosing_block
 from ..core import CodeGraph, Node, NodeGranularity

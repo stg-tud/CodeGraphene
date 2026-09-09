@@ -1,8 +1,7 @@
 """Tests for the BlockAwareTrimmer."""
 
-import pytest
 
-from codegraphene.core import CodeGraph, Edge, Node
+from codegraphene.core import CodeGraph, Node
 from codegraphene.serializers.text import CodeReconstructionSerializer
 from codegraphene.trimmers.base import BaseTrimmer
 from codegraphene.trimmers.block_aware import (

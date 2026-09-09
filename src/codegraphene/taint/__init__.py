@@ -8,6 +8,7 @@ edges on the NetworkX CPG produced by JoernParser. No Joern server required.
 from .flows import TaintFlow, TaintFlowElement
 from .cwe import CWE_TEMPLATES, CWETemplate, get_template, supported_cwes
 from .extractor import TaintExtractor
+from .joern_query import FlowElement, JoernFlow, find_taint_flows
 
 __all__ = [
     "TaintFlow",
@@ -17,4 +18,7 @@ __all__ = [
     "CWE_TEMPLATES",
     "get_template",
     "supported_cwes",
+    "JoernFlow",
+    "FlowElement",
+    "find_taint_flows",
 ]

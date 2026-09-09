@@ -1,5 +1,6 @@
 import os
 import json
+import shutil
 import subprocess
 import tempfile
 from pathlib import Path
@@ -17,17 +18,26 @@ class JoernParser(BaseParser):
         export_format: str = "dot",
         parse_timeout_seconds: int = 120,
         export_timeout_seconds: int = 120,
+        keep_cpg_at: str | None = None,
     ) -> None:
         """
         :param joern_path:   The command or path to the Joern executable.
         :param granularity:  Controls which CPG nodes are included and how they
                              are labelled. Defaults to NodeGranularity.LINE.
+        :param keep_cpg_at:  If set, the CPG binary (cpg.bin) produced by
+                             joern-parse is copied here instead of being
+                             discarded with the temp directory, and the
+                             returned CodeGraph's `cpg_path` points at it.
+                             This lets real interprocedural Joern queries
+                             (see `codegraphene.taint.joern_query`) reuse the
+                             same CPG later without re-parsing the source.
         """
         self.joern_path = joern_path
         self.granularity = granularity
         self.export_format = export_format
         self.parse_timeout_seconds = parse_timeout_seconds
         self.export_timeout_seconds = export_timeout_seconds
+        self.keep_cpg_at = keep_cpg_at
 
     def run(self, current_graph=None, **context):
         """Execute Joern parsing with file-path or raw-source inputs."""
@@ -75,6 +85,7 @@ class JoernParser(BaseParser):
                 # from the graph alone (they don't re-read the file).
                 graph.source_path = file_path
                 graph.source_code = source_code if source_code is not None else self._read_text(resolved_file_path)
+                graph.cpg_path = self.keep_cpg_at
                 return graph
 
             # --- PHASE 1: JSON CONTRACT LOGIC ---
@@ -169,6 +180,11 @@ class JoernParser(BaseParser):
         export_out = os.path.join(temp_dir, "export")
 
         self._run_joern_parse(file_path, cpg_out)
+
+        if self.keep_cpg_at:
+            os.makedirs(os.path.dirname(self.keep_cpg_at) or ".", exist_ok=True)
+            shutil.copy(cpg_out, self.keep_cpg_at)
+
         self._run_joern_export(cpg_out, export_out)
 
         if self.export_format != "dot":

@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from typing import Any
 
+import networkx as nx
+
 from .core import BaseComponent, CodeGraph, NodeGranularity, PipelineResult, TargetSpec
 from .parsers.base import BaseParser
 from .parsers.joern import JoernParser
@@ -11,12 +13,31 @@ from .serializers.base import BaseSerializer
 from .trimmers.base import BaseTrimmer
 
 
+def _compose_graphs(graphs: list[CodeGraph]) -> CodeGraph:
+    """Union multiple CodeGraphs into one (nodes/edges from all of them)."""
+    if len(graphs) == 1:
+        return graphs[0]
+    result = CodeGraph()
+    result.nx_graph = nx.compose_all([g.nx_graph for g in graphs])
+    for g in graphs:
+        if getattr(g, "source_code", None) is not None:
+            result.source_code = g.source_code
+            result.source_path = g.source_path
+            result.cpg_path = getattr(g, "cpg_path", None)
+            break
+    return result
+
+
 class GraphPipeline:
     """Strings together parser, trimmer, and serializer components.
 
     Args:
         parser: A :class:`BaseParser` implementation for building the graph.
-        trimmer: A :class:`BaseTrimmer` implementation for reducing the graph.
+        trimmer: A :class:`BaseTrimmer`, or a list of them to run in
+                 sequence -- each trimmer's output feeds the next, so e.g.
+                 ``[KHopTrimmer(hops=3), KHopTrimmer(hops=1)]`` progressively
+                 narrows the graph. Equivalent to (and implemented via)
+                 passing the same trimmers through ``components=``.
         serializer: A :class:`BaseSerializer` implementation for encoding the graph.
         components: Optional ordered list of components to execute.
     """
@@ -24,7 +45,7 @@ class GraphPipeline:
     def __init__(
         self,
         parser: BaseParser | None = None,
-        trimmer: BaseTrimmer | None = None,
+        trimmer: BaseTrimmer | list[BaseTrimmer] | None = None,
         serializer: BaseSerializer | None = None,
         components: list[BaseComponent] | None = None,
     ) -> None:
@@ -32,7 +53,8 @@ class GraphPipeline:
         if components is not None:
             self._components.extend(components)
         else:
-            for component in (parser, trimmer, serializer):
+            trimmers = trimmer if isinstance(trimmer, list) else [trimmer] if trimmer is not None else []
+            for component in (parser, *trimmers, serializer):
                 if component is not None:
                     self._components.append(component)
 
@@ -59,10 +81,14 @@ class GraphPipeline:
             file_path: Path to the input file to parse.
             source_code: Optional raw source text forwarded to the parser.
             language: Optional language hint forwarded to the parser.
-            target: Identifies the focal node for trimming. Pass an ``int``
-                    to match by line number, a ``str`` to match by exact
-                    label, a compiled ``re.Pattern`` to search label/code,
-                    or a ``Callable[[Node], bool]`` predicate.
+            target: Identifies the focal node(s) for trimming. Pass an
+                    ``int`` to match by line number, a ``str`` to match by
+                    exact label, a compiled ``re.Pattern`` to search
+                    label/code, or a ``Callable[[Node], bool]`` predicate.
+                    When more than one node matches, each trimmer step runs
+                    once per match against the same input graph and the
+                    results are unioned -- e.g. tracing every occurrence of
+                    a variable or API call at once, not just the first.
 
         Returns:
             A :class:`PipelineResult` wrapping the final output. The caller
@@ -70,7 +96,7 @@ class GraphPipeline:
             completed fully or short-circuited on a raw export.
         """
         current_value: Any = None
-        target_node_id: str | None = None
+        target_node_ids: list[str] = []
         executed_steps: list[str] = []
 
         for index, component in enumerate(self._components, start=1):
@@ -82,19 +108,30 @@ class GraphPipeline:
                 print(f"[Pipeline] Step {index}: running {component_name} on {input_label}...")
                 current_value = component.run(file_path=file_path, **context)
             else:
-                if target_node_id is None and isinstance(component, BaseTrimmer):
+                if not target_node_ids and isinstance(component, BaseTrimmer):
                     raise ValueError("A target node could not be resolved before trimming.")
 
                 print(f"[Pipeline] Step {index}: running {component_name}...")
-                current_value = component.run(
-                    current_graph=current_value,
-                    target_node_id=target_node_id,
-                    **context,
-                )
+                if isinstance(component, BaseTrimmer) and len(target_node_ids) > 1:
+                    print(
+                        f"[Pipeline] {len(target_node_ids)} targets matched; "
+                        f"running {component_name} once per target and unioning results."
+                    )
+                    per_target_results = [
+                        component.run(current_graph=current_value, target_node_id=tid, **context)
+                        for tid in target_node_ids
+                    ]
+                    current_value = _compose_graphs(per_target_results)
+                else:
+                    current_value = component.run(
+                        current_graph=current_value,
+                        target_node_id=target_node_ids[0] if target_node_ids else None,
+                        **context,
+                    )
 
-            if isinstance(current_value, CodeGraph) and target_node_id is None and target is not None:
-                target_node_id = self._resolve_target_node_id(current_value, target)
-                print(f"[Pipeline] Target resolved to node {target_node_id}.")
+            if isinstance(current_value, CodeGraph) and not target_node_ids and target is not None:
+                target_node_ids = self._resolve_target_node_ids(current_value, target)
+                print(f"[Pipeline] Target resolved to node(s) {target_node_ids}.")
                 
             # Short-circuit: parser returned a raw artifact (e.g. JSON/XML export)
             if index == 1 and not isinstance(current_value, CodeGraph):
@@ -118,7 +155,7 @@ class GraphPipeline:
             format="text" if is_str else "graph",
             steps_executed=len(self._components),
             steps=executed_steps,
-            metadata={},
+            metadata={"target_node_ids": target_node_ids} if target_node_ids else {},
         )
 
     def dry_run(
@@ -146,8 +183,8 @@ class GraphPipeline:
             )
         return plan
 
-    def _resolve_target_node_id(self, graph: CodeGraph, target: TargetSpec) -> str:
-        """Resolve a user target to the first matching node id."""
+    def _resolve_target_node_ids(self, graph: CodeGraph, target: TargetSpec) -> list[str]:
+        """Resolve a user target to every matching node id."""
         granularity = self._get_granularity()
         target_nodes = granularity.find_target_nodes(graph, target)
         if not target_nodes:
@@ -155,7 +192,7 @@ class GraphPipeline:
                 f"No nodes found matching target {target!r} "
                 f"under granularity {granularity.granularity_name!r}"
             )
-        return target_nodes[0].id
+        return [node.id for node in target_nodes]
 
     def _get_granularity(self):
         """Extract granularity from the configured parser, or default to LINE."""
